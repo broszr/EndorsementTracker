@@ -1,0 +1,2336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NY 2026 – Endorsement Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root { --ink:#0f0e0d; --paper:#f5f0e8; --cream:#ede8dc; --accent:#c8392b; --gold:#b8860b; --muted:#7a7060; --border:#c8bfaa; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Mono',monospace;background:var(--paper);color:var(--ink);height:100vh;display:flex;flex-direction:column;overflow:hidden;}html{height:100%;}
+header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;align-items:stretch;justify-content:space-between;border-bottom:3px solid #ffd100;flex-shrink:0;}
+.header-title{font-family:'DM Serif Display',serif;font-size:1.45rem;}
+.header-title span{color:#ffffff;font-style:normal;}
+.header-meta{font-size:0.75rem;color:#ffd100;letter-spacing:.08em;text-transform:uppercase;}
+.app-body{display:flex;flex:1;overflow:hidden;}
+#map-panel{flex:1;position:relative;}
+#map{position:absolute;top:0;left:0;right:0;bottom:0;background:#e8e8e4;filter:grayscale(0.6);}
+#side-panel{width:380px;background:var(--cream);border-left:2px solid #b3875a;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.side-header{padding:14px 14px 10px;border-bottom:1px solid #b3875a;background:#0077c8;color:var(--paper);flex-shrink:0;}
+.side-header-title{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:2px;}
+.side-header-sub{font-size:0.72rem;color:#ffffff;letter-spacing:.06em;text-transform:uppercase;}
+.side-header-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.side-filter-bar{padding:8px 12px;border-bottom:1px solid #b3875a;background:var(--ink);flex-shrink:0;display:none;gap:6px;flex-wrap:wrap;}
+.side-filter-bar.visible{display:flex;}
+.filter-chip{font-family:'DM Mono',monospace;font-size:0.7rem;padding:3px 8px;border:1px solid var(--border);background:transparent;color:var(--paper);cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:all .15s;}
+.filter-chip.active{background:var(--accent);border-color:var(--accent);}
+.filter-chip:hover:not(.active){border-color:var(--paper);}
+.endorser-filter-banner{display:none;padding:7px 14px;background:var(--gold);color:var(--ink);font-size:0.75rem;align-items:center;justify-content:space-between;flex-shrink:0;}
+.endorser-filter-banner.visible{display:flex;}
+.clear-btn{background:none;border:1px solid var(--ink);font-family:'DM Mono',monospace;font-size:0.7rem;padding:2px 7px;cursor:pointer;}
+.clear-btn:hover{background:var(--ink);color:var(--gold);}
+#candidates-list{flex:1;overflow-y:auto;padding:10px 14px;}
+#candidates-list::-webkit-scrollbar{width:4px;}
+#candidates-list::-webkit-scrollbar-track{background:var(--cream);}
+#candidates-list::-webkit-scrollbar-thumb{background:var(--border);}
+.district-header{font-size:0.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);padding:4px 6px;border-bottom:1px solid #b3875a;margin-bottom:6px;display:flex;justify-content:space-between;}
+.candidate-card{background:#fff8ee;border:1px solid #b3875a;margin-bottom:6px;transition:border-color .15s;}
+.candidate-card:hover{border-color:var(--accent);}
+.card-header{padding:8px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.candidate-name{font-family:'DM Serif Display',serif;font-size:1.02rem;line-height:1.2;}
+.candidate-meta{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;}
+.badge{font-size:0.65rem;padding:1px 5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid;white-space:nowrap;}
+.badge-dem{border-color:#1a4a7a;color:#1a4a7a;}
+.badge-rep{border-color:#8b0000;color:#8b0000;}
+.badge-wfp{border-color:#b8860b;color:#b8860b;}
+.badge-grn{border-color:#006400;color:#006400;}
+.badge-ind{border-color:#555;color:#555;}
+.badge-inc{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.badge-open{background:#197352;color:#ffffff;border-color:#197352;}
+.endorse-count{font-size:0.75rem;color:var(--accent);white-space:nowrap;margin-left:8px;flex-shrink:0;}
+.card-body{display:none;padding:0 10px 10px;border-top:1px solid var(--border);}
+.card-body.open{display:block;}
+.cat-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:8px 0 4px;}
+.chips{display:flex;flex-wrap:wrap;gap:4px;}
+.chip{font-size:0.72rem;padding:3px 7px;background:var(--cream);border:1px solid #b3875a;cursor:pointer;transition:all .15s;line-height:1.3;}
+.chip:hover{background:var(--accent);color:white;border-color:var(--accent);}
+.chip.active{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+.no-results{padding:30px 20px;text-align:center;color:var(--muted);font-size:0.85rem;line-height:1.8;}
+
+.cand-th{padding:8px 8px 6px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);vertical-align:top;min-width:120px;background:var(--paper);position:sticky;top:0;z-index:2;}
+.cand-th:last-child{border-right:none;}
+.cand-th-name{font-family:'DM Serif Display',serif;font-size:0.98rem;line-height:1.3;flex:1;}
+.cand-th-meta{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;}
+.cand-th-count{font-size:0.68rem;color:var(--accent);letter-spacing:.04em;}
+.endorser-wrap{display:flex;flex-direction:column;gap:2px;}
+.endorser-cat-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);line-height:1;}
+.endorser-cat-header{font-size:0.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);line-height:1;margin-top:8px;margin-bottom:3px;padding-bottom:2px;border-bottom:1px solid var(--border);}
+.endorser-cat-header:first-child{margin-top:4px;}
+.cand-td{padding:4px 8px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);vertical-align:middle;}
+.cand-td:last-child{border-right:none;}
+
+.cand-col-header-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;}
+.cand-toggle{font-size:0.85rem;color:var(--accent);flex-shrink:0;margin-left:6px;}
+.cand-endorser-list{display:none;padding:6px 10px;flex-direction:column;gap:4px;}
+.cand-endorser-list.open{display:flex;}
+
+.badge-dropped{font-size:0.65rem;padding:2px 6px;letter-spacing:.06em;text-transform:uppercase;
+  background:#c8392b;color:white;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-left:6px;align-self:center;}
+
+/* ── Endorser overlay ── */
+
+.endorser-bubble-wrap{
+  position:absolute;
+  top:12px;right:12px;
+  z-index:600;
+  pointer-events:auto;
+  animation:cardSlideIn .2s ease both;
+  width:360px;
+}
+@keyframes cardSlideIn{
+  from{opacity:0;transform:translateY(-6px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.endorser-bubble{
+  background:#ffffff;
+  color:#0f0e0d;
+  font-family:'DM Mono',monospace;
+  font-size:0.75rem;
+  letter-spacing:.04em;
+  border:2px solid #002d72;
+  border-radius:2px;
+  display:flex;
+  flex-direction:column;
+  padding:12px 14px 10px;
+  box-sizing:border-box;
+  position:relative;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+}
+.bubble-close{
+  position:absolute;
+  top:6px;right:6px;
+  width:18px;height:18px;
+  border-radius:50%;
+  background:var(--accent);
+  color:white;
+  font-size:0.65rem;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  border:none;
+  line-height:1;
+  pointer-events:auto;
+  z-index:10;
+  transition:background .15s;
+}
+.bubble-close:hover{background:#a02020;}
+.endorser-bubble .bubble-label{
+  font-size:0.58rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:#f2a900;
+  margin-bottom:4px;
+}
+.endorser-bubble .bubble-name{
+  font-family:'DM Serif Display',serif;
+  font-size:0.95rem;
+  line-height:1.3;
+  word-break:break-word;
+  padding-right:16px;
+  margin-bottom:6px;
+}
+.endorser-bubble .bubble-count{
+  font-size:0.62rem;
+  color:#555;
+  letter-spacing:.04em;
+  line-height:1.6;
+  border-top:1px solid rgba(0,0,0,.1);
+  padding-top:6px;
+}
+
+/* Make SVG district fills fully hoverable (not just stroke) */
+.leaflet-interactive { pointer-events: all !important; outline: none !important; }
+
+/* ── Park labels ── */
+.park-label{
+  background:transparent;
+  border:none;
+  box-shadow:none;
+  font-family:'DM Mono',monospace;
+  font-size:0.55rem;
+  font-weight:500;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:#2a3d2c;
+  text-shadow:0 0 3px #b8c9b0,0 0 6px #b8c9b0,0 0 9px #b8c9b0;
+  white-space:nowrap;
+  pointer-events:none;
+}
+.park-label::before{display:none;}
+
+/* ── District hover tooltip ── */
+.district-tooltip{
+  background:var(--ink);
+  color:var(--paper);
+  font-family:'DM Mono',monospace;
+  font-size:0.62rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  border:1px solid var(--gold);
+  border-radius:2px;
+  padding:4px 8px;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
+  white-space:nowrap;
+}
+.district-tooltip::before{display:none;}
+
+/* ── City markers ── */
+.city-marker{
+  position:absolute;
+  transform:translate(-50%, -50%);
+  pointer-events:none;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+}
+.city-dot{
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:var(--ink);
+  border:1.5px solid var(--paper);
+  box-shadow:0 1px 3px rgba(0,0,0,.4);
+  flex-shrink:0;
+}
+.city-label{
+  font-family:'DM Mono',monospace;
+  font-size:0.62rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--ink);
+  white-space:nowrap;
+  text-shadow:0 0 3px var(--paper),0 0 6px var(--paper),0 0 9px var(--paper);
+  font-weight:500;
+  line-height:1;
+}
+#map-search-wrap{
+  position:absolute;
+  top:12px;right:12px;
+  z-index:601;
+  width:360px;
+  pointer-events:auto;
+  transition:top .2s ease;
+}
+#map-search-wrap.below-card{
+  top:auto;
+}
+#map-search-input{
+  width:100%;
+  font-family:'DM Mono',monospace;
+  font-size:0.72rem;
+  letter-spacing:.04em;
+  background:#ffffff;
+  color:#0f0e0d;
+  border:2px solid var(--border);
+  border-radius:2px;
+  padding:7px 28px 7px 28px;
+  outline:none;
+  box-shadow:0 2px 10px rgba(0,0,0,.3);
+  transition:border-color .15s;
+}
+#map-search-input::placeholder{color:#999;}
+#map-search-input:focus{border-color:var(--gold);}
+#map-search-clear{
+  position:absolute;
+  right:8px;top:50%;
+  transform:translateY(-50%);
+  background:none;border:none;
+  color:#999;
+  font-size:0.8rem;
+  cursor:pointer;
+  display:none;
+  line-height:1;
+  padding:2px;
+}
+#map-search-clear.visible{display:block;}
+#map-search-results{
+  background:var(--ink);
+  border:2px solid var(--border);
+  border-top:none;
+  border-radius:0 0 2px 2px;
+  max-height:260px;
+  overflow-y:auto;
+  display:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+}
+#map-search-results.visible{display:block;}
+#map-search-results::-webkit-scrollbar{width:3px;}
+#map-search-results::-webkit-scrollbar-thumb{background:var(--border);}
+.search-result-group{
+  font-size:0.58rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--gold);
+  padding:6px 10px 3px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.search-result-group:first-child{border-top:none;}
+.search-result-item{
+  font-family:'DM Mono',monospace;
+  font-size:0.7rem;
+  color:var(--paper);
+  padding:5px 10px;
+  cursor:pointer;
+  letter-spacing:.02em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:background .1s;
+}
+.search-result-item:hover{background:rgba(255,255,255,.08);}
+.search-result-item .result-sub{
+  font-size:0.62rem;
+  color:var(--muted);
+  margin-left:6px;
+}
+/* Highlighted districts pulse */
+.district-highlighted{
+  animation:districtPulse 1.5s ease-in-out;
+}
+@keyframes districtPulse{
+  0%{fill-opacity:.08;}
+  50%{fill-opacity:.55;}
+  100%{fill-opacity:.35;}
+}
+
+.overlay-toggle{font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:.07em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--border);background:transparent;color:var(--paper);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.overlay-toggle.active{background:#f2a900;border-color:#f2a900;color:var(--ink);}
+.overlay-toggle:hover:not(.active){border-color:var(--paper);}
+.assembly-crumb{margin-top:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.assembly-crumb #assembly-crumb-text{font-size:0.7rem;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;line-height:1.3;}
+.crumb-back{font-family:'DM Mono',monospace;font-size:0.68rem;background:none;border:1px solid var(--border);color:var(--muted);padding:2px 7px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;}
+.crumb-back:hover{border-color:var(--paper);color:var(--paper);}
+.endorse-toggle{display:flex;align-items:center;gap:5px;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;cursor:pointer;user-select:none;background:none;border:none;padding:0;font-family:'DM Mono',monospace;width:100%;}
+.endorse-toggle:hover{color:var(--ink);}
+.endorse-toggle-arrow{font-size:0.6rem;transition:transform .15s;display:inline-block;}
+.endorse-toggle.open .endorse-toggle-arrow{transform:rotate(90deg);}
+.endorse-body{display:none;}
+.endorse-body.open{display:block;}
+
+/* ── Mobile collapse toggle ── */
+#panel-collapse-btn{display:none;}
+
+/* ── Mobile styles ── */
+@media (max-width:768px){
+  /* Prevent iOS text size adjustment */
+  html { -webkit-text-size-adjust: 100%; }
+
+  /* Header: compact for mobile */
+  header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
+    padding:8px 12px;
+  }
+  .header-title{font-size:1.1rem;}
+  .header-meta{display:none;}
+  .header-toggles{display:flex;gap:4px;flex-wrap:nowrap;width:100%;}
+  #congToggle,#senateToggle,#assemblyToggle,#resetToggle{
+    flex:1;
+    font-size:0.58rem;
+    padding:4px 2px;
+    text-align:center;
+    white-space:nowrap;
+    letter-spacing:.03em;
+  }
+
+  /* App body stacks vertically */
+  .app-body{flex-direction:column;overflow:hidden;}
+
+  /* Map fills space above panel */
+  #map-panel{flex:1;min-height:0;position:relative;}
+
+  /* Side panel */
+  #side-panel{
+    width:100%;
+    border-left:none;
+    border-top:2px solid var(--border);
+    flex:none;
+    height:55vh;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transition:height .3s ease;
+  }
+  #side-panel.collapsed{height:20vh;}
+
+  /* Side header: column layout, collapse btn at top */
+  .side-header{
+    display:flex !important;
+    flex-direction:column !important;
+    padding:0 !important;
+  }
+  #side-header-el{
+    padding:0;
+  }
+
+  /* Collapse button — full width at top */
+  #panel-collapse-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    background:none;
+    border:none;
+    border-bottom:1px solid rgba(255,255,255,0.2);
+    color:var(--gold);
+    font-size:1.4rem;
+    cursor:pointer;
+    padding:7px 0;
+    flex-shrink:0;
+    line-height:1;
+  }
+
+  /* Title row: counteract parent padding, span full width */
+  #side-header-el .side-header-row{
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:8px;
+    padding:8px 14px 10px;
+    width:100%;
+    box-sizing:border-box;
+    margin:0;
+  }
+  .side-header-row > div:first-child{flex:1;min-width:0;}
+  #clear-all-btn{flex-shrink:0;}
+  #assembly-crumb, #senate-crumb{ padding:4px 14px 6px; }
+
+  /* Endorser card */
+  .endorser-bubble-wrap{width:200px;top:8px;right:8px;}
+  .endorser-bubble .bubble-name{font-size:0.8rem;}
+
+  /* Search bar: collapsed to icon, pinned bottom-left of map */
+  #map-search-wrap{
+    top:auto !important;
+    bottom:12px;
+    left:12px;
+    right:auto;
+    width:auto;
+  }
+  #map-search-wrap.search-expanded{
+    width:calc(100vw - 24px);
+  }
+  #map-search-input{
+    font-size:16px;
+    display:none;
+    width:100%;
+  }
+  #map-search-wrap.search-expanded #map-search-input{
+    display:block;
+  }
+  #map-search-results{
+    bottom:100%;
+    top:auto;
+    position:absolute;
+    width:100%;
+    max-height:220px;
+    border-top:2px solid var(--border);
+    border-bottom:none;
+    border-radius:2px 2px 0 0;
+  }
+  #map-search-icon-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:38px;
+    height:38px;
+    background:#ffffff;
+    border:2px solid var(--border);
+    border-radius:2px;
+    cursor:pointer;
+    box-shadow:0 2px 10px rgba(0,0,0,.3);
+    flex-shrink:0;
+  }
+  #map-search-wrap.search-expanded #map-search-icon-btn{
+    display:none;
+  }
+  #map-search-clear.visible{display:block;}
+
+  /* Candidates list */
+  #candidates-list{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+  /* Filter bar */
+  .side-filter-bar{flex-wrap:wrap;}
+  #filter-bar-count{font-size:0.62rem;}
+
+
+
+
+  /* Endorser card: smaller on mobile */
+  .endorser-bubble-wrap{
+    width:160px;
+    top:8px;
+    right:8px;
+}
+
+  .endorser-bubble .bubble-name{
+    font-size:0.85rem;
+  }
+
+
+  /* Prevent iOS zoom on search input focus */
+  #map-search-input{
+    font-size:16px;
+  }
+  #candidates-list{
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  /* Filter chips wrap */
+  .side-filter-bar{flex-wrap:wrap;}
+}
+</style>
+  <script src="cd03.js"></script>
+  <script src="parks.js"></script>
+  <script src="congressional.js"></script>
+  <script src="asm-geo.js"></script>
+  <script src="senate-geo.js"></script>
+  <script src="shore.js"></script>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;">
+    <div class="header-title">New York <span>2026</span> Endorsement Tracker</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:6px;">
+    <div class="header-meta">Toggle a layer · click a district to explore</div>
+    <div class="header-toggles">
+      <button class="overlay-toggle" id="congToggle">Congressional</button>
+      <button class="overlay-toggle" id="senateToggle">Senate</button>
+      <button class="overlay-toggle" id="assemblyToggle">Assembly</button>
+      <button class="overlay-toggle" id="resetToggle">Reset</button>
+    </div>
+  </div>
+</header>
+<div class="app-body">
+  <div id="map-panel">
+    <div id="map"></div>
+    <div id="map-search-wrap">
+      <button id="map-search-icon-btn" title="Search" style="display:none;">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;"><circle cx="6.5" cy="6.5" r="4.5" stroke="#0f0e0d" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="#0f0e0d" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <div style="position:relative;">
+        <svg id="map-search-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:14px;height:14px;pointer-events:none;opacity:0.5;"><circle cx="6.5" cy="6.5" r="4.5" stroke="#0f0e0d" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="#0f0e0d" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input id="map-search-input" type="text" placeholder="Search districts, candidates, and endorsers" autocomplete="off">
+        <button id="map-search-clear" title="Clear">✕</button>
+      </div>
+      <div id="map-search-results"></div>
+    </div>
+    <div id="loading-overlay" style="position:absolute;inset:0;background:rgba(245,242,235,0.92);display:flex;align-items:center;justify-content:center;z-index:9999;pointer-events:all;">
+      <div style="text-align:center;font-family:'DM Mono',monospace;color:#555;">
+        <div style="font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;">Loading endorsement data…</div>
+        <div style="width:120px;height:2px;background:#ddd;margin:0 auto;border-radius:2px;overflow:hidden;">
+          <div style="width:40%;height:100%;background:#b8860b;animation:loading-bar 1.2s ease-in-out infinite alternate;"></div>
+        </div>
+      </div>
+    </div>
+    <style>@keyframes loading-bar{from{transform:translateX(0)}to{transform:translateX(150%)}}</style>
+  </div>
+  <div id="side-panel">
+    <div class="side-header" id="side-header-el">
+      <button id="panel-collapse-btn" title="Collapse panel">▾</button>
+      <div class="side-header-row">
+        <div style="flex:1;min-width:0;">
+          <div class="side-header-title" id="panel-title">Select a District</div>
+          <div class="side-header-sub" id="panel-subtitle">Click any district on the map</div>
+        </div>
+        <button id="clear-all-btn" onclick="clearAllSelections()" style="display:none;flex-shrink:0;margin-top:2px;font-family:'DM Mono',monospace;font-size:.55rem;background:none;border:1px solid #f2a900;color:#f2a900;padding:3px 8px;cursor:pointer;letter-spacing:.05em;white-space:nowrap;text-transform:uppercase;">Clear All</button>
+      </div>
+      <div class="assembly-crumb" id="assembly-crumb" style="display:none;">
+        <span id="assembly-crumb-text"></span>
+        <button class="crumb-back" id="crumb-back">&#8592; Back to district</button>
+      </div>
+      <div class="assembly-crumb" id="senate-crumb" style="display:none;">
+        <span id="senate-crumb-text"></span>
+        <button class="crumb-back" id="senate-crumb-back">&#8592; Back to district</button>
+      </div>
+    </div>
+    <div class="side-filter-bar" id="filter-bar">
+      <button class="filter-chip active" data-party="ALL">All</button>
+      <button class="filter-chip" data-party="Democratic Party">Dem</button>
+      <button class="filter-chip" data-party="Republican Party">Rep</button>
+      <button class="filter-chip" data-party="other">Other</button>
+      <span id="filter-bar-count" style="margin-left:auto;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:.04em;align-self:center;white-space:nowrap;"></span>
+    </div>
+    <div class="endorser-filter-banner" id="endorser-banner">
+      <span id="banner-text"></span>
+      <button class="clear-btn" id="clearBtn">&#10005; Clear</button>
+    </div>
+    <div id="candidates-list">
+      <div class="no-results">Toggle a district layer to explore candidates and endorsements.</div>
+    </div>
+  </div>
+</div>
+<script>
+// ── Google Sheets data source ──────────────────────────────────────
+var SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5dS_0mGq_7p86sHxQD-wa9ujhO9PCHQ6_xQZmx4ijAW-WLMDM3AMZ9JO9erhrjACm2lWHk34_XBFi/pub?output=csv&gid=0';
+
+var CANDIDATES_RAW = [];
+var CANDIDATES = [];
+var GOV_CANDIDATES = [];
+var COMP_CANDIDATES = [];
+var AG_CANDIDATES = [];
+var CD03_CANDIDATES = [];
+
+
+function parseCSVRow(row) {
+  // RFC 4180-compliant CSV parser for a single row
+  var fields = [];
+  var cur = '';
+  var inQuotes = false;
+  for (var i = 0; i < row.length; i++) {
+    var ch = row[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (row[i+1] === '"') { cur += '"'; i++; }
+        else { inQuotes = false; }
+      } else { cur += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { fields.push(cur); cur = ''; }
+      else { cur += ch; }
+    }
+  }
+  fields.push(cur);
+  return fields;
+}
+
+function parseCSVLines(text) {
+  // Split CSV text into logical rows, respecting quoted fields that contain newlines
+  var rows = [];
+  var cur = '';
+  var inQuotes = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { cur += '"'; i++; }
+        else { inQuotes = false; cur += ch; }
+      } else { cur += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; cur += ch; }
+      else if (ch === '\r' && text[i+1] === '\n') { rows.push(cur); cur = ''; i++; }
+      else if (ch === '\n' || ch === '\r') { rows.push(cur); cur = ''; }
+      else { cur += ch; }
+    }
+  }
+  if (cur.length > 0) rows.push(cur);
+  return rows;
+}
+
+function parseSheetCSV(text) {
+  var lines = parseCSVLines(text);
+  if (lines.length < 3) return [];
+
+  // Row 1 (index 0): blank A-F, then endorser CATEGORIES in G+ (index 6+)
+  // Row 2 (index 1): blank A-F, then endorser NAMES in G+ (index 6+)
+  // Row 3 (index 2): headers for A-F, endorser totals in G+ (skip this row)
+  // Row 4+ (index 3+): candidate data
+
+  var categoryRow = parseCSVRow(lines[0]);
+  var nameRow     = parseCSVRow(lines[1]);
+
+  // Pad both rows to the same length so column indices stay in sync
+  var headerLen = Math.max(categoryRow.length, nameRow.length);
+  while (categoryRow.length < headerLen) categoryRow.push('');
+  while (nameRow.length < headerLen) nameRow.push('');
+
+  // Build endorser list from column G onward (index 6+)
+  var endorsers = [];
+  for (var col = 6; col < headerLen; col++) {
+    var cat  = (categoryRow[col] || '').trim();
+    var name = (nameRow[col]     || '').trim();
+    if (cat || name) endorsers.push({col: col, category: cat, name: name});
+  }
+
+  var headerLen = Math.max(categoryRow.length, nameRow.length);
+
+  var result = [];
+  // Data rows start at index 3 (row 4 in the sheet)
+  for (var i = 3; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var fields = parseCSVRow(line);
+    // Pad fields to header length so column indices always align
+    while (fields.length < headerLen) fields.push('');
+
+    // Col A = district type/position (e.g. NY01)
+    // Col B = positionStatus, Col C = candidate name
+    // Col D = campaignStatus, Col E = party, Col F = total endorsements (skip)
+    var position       = (fields[0] || '').trim();
+    var positionStatus = (fields[1] || '').trim();
+    var candidate      = (fields[2] || '').trim();
+    var campaignStatus = (fields[3] || '').trim();
+    var party          = (fields[4] || '').trim();
+
+    if (!position || !candidate) continue;
+
+    // Check each endorser column — any non-empty, non-zero cell = endorsed
+    var endorsements = [];
+    for (var e = 0; e < endorsers.length; e++) {
+      var cell = (fields[endorsers[e].col] || '').trim();
+      if (cell.toUpperCase() === 'X') {
+        endorsements.push([endorsers[e].category, endorsers[e].name]);
+      }
+    }
+
+    result.push([position, positionStatus, candidate, campaignStatus, party, endorsements]);
+  }
+  return result;
+}
+
+
+
+// 26 distinct colors for congressional districts (district index 0–25)
+var CONG_COLORS = [
+  '#2166ac','#d6604d','#1b7837','#8073ac','#d48b0e','#4393c3','#b2182b',
+  '#35978f','#c2a5cf','#4d9221','#e08214','#7570b3','#1a9850','#d7191c',
+  '#2c7fb8','#756bb1','#006d2c','#e6550d','#08519c','#a50f15','#41b6c4',
+  '#8c510a','#01665e','#4575b4','#74add1','#bf812d'
+];
+var currentPos = null;
+var selectedCongLayer = null;
+var currentParty = 'ALL';
+var currentEndorser = null;
+var cardN = 0;
+var mapObj = null;
+var geoLayer = null;
+
+function loadScript(src, cb) {
+  var s = document.createElement('script');
+  s.src = src; s.onload = cb;
+  document.head.appendChild(s);
+}
+
+function bootApp() {
+  try {
+    initMap();
+    initAssemblyOverlay();
+    initSenateOverlay();
+    initMapSearch();
+    var overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.style.display = 'none';
+  } catch(err) {
+    console.error('bootApp error:', err);
+    var overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.innerHTML = '<div style="color:#c00;font-family:sans-serif;padding:20px;font-size:14px;">Error loading app:<br>' + err.message + '<br><br>' + err.stack + '</div>';
+  }
+}
+
+function fetchSheetData(cb) {
+  fetch(SHEET_CSV_URL)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(function(text) {
+      CANDIDATES_RAW = parseSheetCSV(text);
+      CANDIDATES = []; GOV_CANDIDATES = []; COMP_CANDIDATES = []; AG_CANDIDATES = []; CD03_CANDIDATES = [];
+      CANDIDATES_RAW.forEach(function(r) {
+        var obj = {position:r[0], positionStatus:r[1], candidate:r[2],
+          campaignStatus:r[3], party:r[4],
+          endorsements:r[5].map(function(e){return {category:e[0], name:e[1]};})};
+        var pos = (r[0] || '').trim().toUpperCase();
+        if (pos === 'NY GOV')            GOV_CANDIDATES.push(obj);
+        else if (pos === 'NY COMP')      COMP_CANDIDATES.push(obj);
+        else if (pos === 'NY AG')        AG_CANDIDATES.push(obj);
+        else if (pos === 'NYC CD03')     CD03_CANDIDATES.push(obj);
+        else if (/^AD\d+$/i.test(pos)) {
+          // Merge sheet endorsements into matching ASSEMBLY_CANDIDATES entry
+          var asmMatch = ASSEMBLY_CANDIDATES.find(function(a){return a.position.toUpperCase()===pos.toUpperCase() && a.candidate===obj.candidate;});
+          if (asmMatch && obj.endorsements.length) {
+            var asmExisting = asmMatch.endorsements.map(function(e){return e.name;});
+            obj.endorsements.forEach(function(e){
+              if (e.name && asmExisting.indexOf(e.name) === -1) {
+                asmMatch.endorsements.push(e);
+                asmExisting.push(e.name);
+              }
+            });
+          } else if (!asmMatch) {
+            ASSEMBLY_CANDIDATES.push(obj);
+          }
+        }
+        else if (/^SD\d+$/i.test(pos)) {
+          // Merge sheet endorsements into matching SENATE_CANDIDATES entry
+          var senMatch = SENATE_CANDIDATES.find(function(s){return s.position.toUpperCase()===pos.toUpperCase() && s.candidate===obj.candidate;});
+          if (senMatch && obj.endorsements.length) {
+            var senExisting = senMatch.endorsements.map(function(e){return e.name;});
+            obj.endorsements.forEach(function(e){
+              if (e.name && senExisting.indexOf(e.name) === -1) {
+                senMatch.endorsements.push(e);
+                senExisting.push(e.name);
+              }
+            });
+          } else if (!senMatch) {
+            SENATE_CANDIDATES.push(obj);
+          }
+        }
+        else                        CANDIDATES.push(obj);
+      });
+      cb();
+    })
+    .catch(function(err) {
+      console.error('Sheet fetch failed:', err);
+      cb(); // boot anyway with hardcoded data
+    });
+}
+
+loadScript('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js', function() {
+  fetchSheetData(bootApp);
+});
+
+function initMap() {
+  mapObj = L.map('map', {
+    zoomControl: true,
+    attributionControl: false,
+    doubleClickZoom: true,
+    minZoom: 6,
+    maxBounds: L.latLngBounds([[40.2, -80.0], [45.2, -71.5]]),
+    maxBoundsViscosity: 1.0
+  });
+
+  /* Shore as base layer */
+  shoreLayer = L.geoJSON(SHORE_GEOJSON, {
+    style: function() {
+      return {color:'#6b7c6e', fillColor:'#ddd8cc', fillOpacity:1, weight:1.2, opacity:0.7};
+    },
+    interactive: false
+  }).addTo(mapObj);
+
+  /* Parks layer — permanent, above shore, below all district layers */
+  var parksLayer = L.geoJSON(PARKS_GEOJSON, {
+    style: function() {
+      return {color:'#4a5e4d', fillColor:'#b8c9b0', fillOpacity:0.75, weight:1, opacity:0.8};
+    },
+    interactive: false,
+    onEachFeature: function(feature, layer) {
+      var name = feature.properties.name;
+      if (!name) return;
+      // Attach tooltip but control visibility via zoom
+      layer._parkName = name;
+      layer.bindTooltip(name, {
+        permanent: true,
+        className: 'park-label',
+        direction: 'center',
+        offset: [0, 0]
+      });
+    }
+  }).addTo(mapObj);
+
+  var PARK_LABEL_ZOOM = 11;
+
+  function updateParkLabels() {
+    var z = mapObj.getZoom();
+    parksLayer.eachLayer(function(layer) {
+      if (!layer._parkName) return;
+      var tt = layer.getTooltip();
+      if (!tt) return;
+      if (z >= PARK_LABEL_ZOOM) {
+        if (!tt.isOpen()) layer.openTooltip();
+      } else {
+        if (tt.isOpen()) layer.closeTooltip();
+      }
+    });
+  }
+
+  mapObj.on('zoomend', updateParkLabels);
+  setTimeout(updateParkLabels, 300);
+
+  /* City labels — above shore, below district layers */
+  var CITIES = [
+    {name:'Buffalo',   lat:42.88639, lng:-78.87806},
+    {name:'Rochester', lat:43.16556, lng:-77.61611},
+    {name:'Syracuse',  lat:43.04694, lng:-76.14444},
+    {name:'Albany',    lat:42.65250, lng:-73.75722},
+    {name:'Manhattan', lat:40.71270, lng:-74.00590},
+  ];
+  var cityMarkerEls = [];
+  var BASE_ZOOM = 7;
+  CITIES.forEach(function(city) {
+    var icon = L.divIcon({
+      className: '',
+      html: '<div class="city-marker"><div class="city-dot"></div><div class="city-label">'+city.name+'</div></div>',
+      iconSize: [0, 0],
+      iconAnchor: [0, 0]
+    });
+    var m = L.marker([city.lat, city.lng], {icon: icon, interactive: false, keyboard: false}).addTo(mapObj);
+    cityMarkerEls.push(m);
+  });
+
+  function scaleCityMarkers() {
+    var z = mapObj.getZoom();
+    var scale = Math.pow(0.75, z - BASE_ZOOM);
+    scale = Math.max(0.15, Math.min(1, scale));
+    cityMarkerEls.forEach(function(m) {
+      var el = m.getElement();
+      if (!el) return;
+      var dot = el.querySelector('.city-dot');
+      var label = el.querySelector('.city-label');
+      if (dot) {
+        dot.style.width  = (5 * scale) + 'px';
+        dot.style.height = (5 * scale) + 'px';
+        dot.style.borderWidth = (1.5 * scale) + 'px';
+      }
+      if (label) {
+        label.style.fontSize = (0.52 * scale) + 'rem';
+        label.style.letterSpacing = (0.06 * scale) + 'em';
+        label.style.marginTop = (3 * scale) + 'px';
+      }
+    });
+  }
+
+  mapObj.on('zoomend', scaleCityMarkers);
+  setTimeout(scaleCityMarkers, 200);
+
+  /* Congressional layer — toggleable */
+  geoLayer = L.geoJSON(CONGRESSIONAL_GEOJSON, {
+    style: function(feature) { var c=CONG_COLORS[parseInt(feature.properties.District,10)-1]||'#1a6b3a'; return {color:c, fillColor:c, fillOpacity:0.12, weight:1.2, opacity:0.8}; },
+    onEachFeature: function(feature, fl) {
+      var num = parseInt(feature.properties.District, 10);
+      var pos = 'NY' + (num < 10 ? '0' : '') + num;
+      fl.bindTooltip('Congressional District ' + num, {
+        sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
+      });
+      fl.on('mouseover', function() {
+        if (!currentEndorser) fl.closeTooltip();
+      });
+      fl.on('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        // Clicking an already-selected district deselects it
+        if (selectedCongLayer === fl) {
+          var dc = CONG_COLORS[num - 1] || '#1a6b3a';
+          fl.setStyle({fillColor: dc, fillOpacity: 0.12, weight: 1.2, color: dc, opacity: 0.8});
+          selectedCongLayer = null;
+          currentPos = null;
+          document.getElementById('panel-title').textContent = 'Select a District';
+          document.getElementById('panel-subtitle').textContent = 'Click any district on the map';
+          document.getElementById('filter-bar').classList.remove('visible');
+          document.getElementById('candidates-list').innerHTML = '<div class="no-results">Click a district on the map to explore candidates.</div>';
+          updateClearAllBtn();
+          return;
+        }
+        // Reset previous selected district
+        if (selectedCongLayer && selectedCongLayer !== fl) {
+          var prevDist = parseInt(selectedCongLayer.feature.properties.District, 10);
+          var prevC = CONG_COLORS[prevDist - 1] || '#1a6b3a';
+          selectedCongLayer.setStyle({fillColor: prevC, fillOpacity: 0.12, weight: 1.2, color: prevC, opacity: 0.8});
+        }
+        // Highlight new selection
+        selectedCongLayer = fl;
+        var selC = CONG_COLORS[num - 1] || '#1a6b3a';
+        fl.setStyle({fillColor: selC, fillOpacity: 0.45, weight: 2.5, color: selC, opacity: 1});
+        fl.bringToFront();
+        onDistrictClick(num, pos, e.latlng);
+      });
+    }
+  }); /* not added to map yet */
+
+  mapObj.fitBounds(shoreLayer.getBounds(), {padding: [20, 20]});
+
+
+  mapObj.on('click', function() {
+    // Deselect highlighted congressional district
+    if (selectedCongLayer) {
+      var d = parseInt(selectedCongLayer.feature.properties.District, 10);
+      var c = CONG_COLORS[d - 1] || '#1a6b3a';
+      selectedCongLayer.setStyle({fillColor: c, fillOpacity: 0.12, weight: 1.2, color: c, opacity: 0.8});
+      selectedCongLayer = null;
+      currentPos = null;
+      updateClearAllBtn();
+    }
+    if (currentEndorser) {
+      currentEndorser = null;
+      endorserBubblePos = null;
+      document.getElementById('endorser-banner').classList.remove('visible');
+      clearEndorserOverlay();
+      document.querySelector('.filter-chip[data-party="other"]').style.display = 'none';
+      renderPanel();
+    }
+  });
+
+  document.querySelectorAll('.filter-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      currentParty = chip.dataset.party;
+      document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      if (currentSenateDistrict) { renderSenatePanel(); } else if (currentAssemblyDistrict) { renderAssemblyPanel(); } else { renderPanel(); }
+    });
+  });
+  document.getElementById('clearBtn').addEventListener('click', function() {
+    currentEndorser = null;
+    endorserBubblePos = null;
+    document.getElementById('endorser-banner').classList.remove('visible');
+    renderPanel();
+  });
+
+  /* Mobile side panel collapse */
+  var collapseBtn = document.getElementById('panel-collapse-btn');
+  var sidePanel = document.getElementById('side-panel');
+  collapseBtn.addEventListener('click', function() {
+    var collapsed = sidePanel.classList.toggle('collapsed');
+    collapseBtn.textContent = collapsed ? '▴' : '▾';
+    // Invalidate map size so it fills the extra space
+    setTimeout(function() { if (mapObj) mapObj.invalidateSize(); }, 280);
+  });
+
+  /* Congressional toggle */
+  document.getElementById('congToggle').addEventListener('click', function() {
+    congVisible = !congVisible;
+    this.classList.toggle('active', congVisible);
+    if (congVisible) {
+      geoLayer.addTo(mapObj);
+    } else {
+      mapObj.removeLayer(geoLayer);
+      currentPos = null;
+      clearEndorserOverlay();
+      document.getElementById('candidates-list').innerHTML =
+        '<div class="no-results">Toggle a district layer to explore candidates.</div>';
+      document.getElementById('panel-title').textContent = 'Select a District';
+      document.getElementById('panel-subtitle').textContent = 'Click any district on the map';
+    }
+    updateLayerPriority();
+  });
+
+  /* Reset toggle */
+  document.getElementById('resetToggle').addEventListener('click', function() {
+    // Turn off all district layers
+    if (congVisible) { document.getElementById('congToggle').click(); }
+    if (assemblyVisible) { document.getElementById('assemblyToggle').click(); }
+    if (senateVisible) { document.getElementById('senateToggle').click(); }
+    // Clear all selections and endorser state
+    clearAllSelections();
+    // Return map to initial bounds
+    mapObj.flyToBounds(shoreLayer.getBounds(), {padding: [20, 20], duration: 0.6});
+  });
+}
+
+function mobileExpandPanel() {
+  if (window.innerWidth > 768) return;
+  var sidePanel = document.getElementById('side-panel');
+  var collapseBtn = document.getElementById('panel-collapse-btn');
+  if (sidePanel.classList.contains('collapsed')) {
+    sidePanel.classList.remove('collapsed');
+    collapseBtn.textContent = '▾';
+    setTimeout(function() { if (mapObj) mapObj.invalidateSize(); }, 280);
+  }
+}
+
+function onDistrictClick(num, pos, latlng, skipAssemblyClear) {
+  mobileExpandPanel();
+  // If pos changed (called from asm/senate click), reset old cong highlight
+  if (currentPos !== pos && selectedCongLayer) {
+    var d = parseInt(selectedCongLayer.feature.properties.District, 10);
+    var pc = CONG_COLORS[d - 1] || '#1a6b3a';
+    selectedCongLayer.setStyle({fillColor: pc, fillOpacity: 0.12, weight: 1.2, color: pc, opacity: 0.8});
+    selectedCongLayer = null;
+    // Find and highlight the new cong layer
+    if (geoLayer) {
+      geoLayer.eachLayer(function(l) {
+        if (parseInt(l.feature.properties.District, 10) === num) {
+          selectedCongLayer = l;
+          var nc = CONG_COLORS[num - 1] || '#1a6b3a';
+          l.setStyle({fillColor: nc, fillOpacity: 0.45, weight: 2.5, color: nc, opacity: 1});
+          l.bringToFront();
+        }
+      });
+    }
+  }
+  currentPos = pos;
+  currentEndorser = null;
+  currentParty = 'ALL';
+  clearEndorserOverlay();
+  if (!skipAssemblyClear) { clearAssemblySelection(); clearSenateSelection(); }
+  document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.toggle('active', c.dataset.party === 'ALL'); });
+  document.getElementById('endorser-banner').classList.remove('visible');
+
+  var cands = CANDIDATES.filter(function(c) { return c.position === pos; });
+
+  var titleEl = document.getElementById('panel-title');
+  titleEl.innerHTML = '';
+  var titleText = document.createTextNode('Congressional District ' + num);
+  titleEl.appendChild(titleText);
+  var isOpen = cands.some(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('open') > -1; });
+  var incumbent = cands.find(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('incumbent') > -1; });
+  var subtitleEl = document.getElementById('panel-subtitle');
+  subtitleEl.innerHTML = '';
+  if (isOpen) {
+    var openBadge = document.createElement('span');
+    openBadge.className = 'badge badge-open';
+    openBadge.textContent = 'Open Seat';
+    subtitleEl.appendChild(openBadge);
+  } else {
+    subtitleEl.textContent = incumbent ? incumbent.candidate : '';
+  }
+  var hasOther = cands.some(function(c) { return c.party !== 'Democratic Party' && c.party !== 'Republican Party'; });
+  document.querySelector('.filter-chip[data-party="other"]').style.display = hasOther ? '' : 'none';
+  document.getElementById('filter-bar').classList.add('visible');
+  renderPanel();
+  updateClearAllBtn();
+}
+
+function makeCandCol(c, showDistrictBadge) {
+  var col = document.createElement('div');
+  col.className = 'cand-col';
+
+  var hdr = document.createElement('div');
+  hdr.className = 'cand-col-header';
+  hdr.style.cursor = c.endorsements.length > 0 ? 'pointer' : 'default';
+
+  var hdrTop = document.createElement('div');
+  hdrTop.className = 'cand-col-header-top';
+
+  var nameEl = document.createElement('div');
+  nameEl.className = 'cand-th-name';
+  nameEl.textContent = c.candidate;
+  hdrTop.appendChild(nameEl);
+
+  if ((c.campaignStatus || '').toLowerCase().indexOf('dropped') > -1) {
+    var droppedLabel = document.createElement('span');
+    droppedLabel.className = 'badge-dropped';
+    droppedLabel.textContent = 'Dropped Out';
+    hdrTop.appendChild(droppedLabel);
+  }
+
+  var toggle = document.createElement('span');
+  toggle.className = 'cand-toggle';
+  toggle.textContent = c.endorsements.length > 0 ? '▾' : '';
+  hdrTop.appendChild(toggle);
+  hdr.appendChild(hdrTop);
+
+  var meta = document.createElement('div');
+  meta.className = 'cand-th-meta';
+  var pb = document.createElement('span');
+  pb.className = 'badge ' + partyClass(c.party);
+  pb.textContent = c.party.replace(' Party','');
+  meta.appendChild(pb);
+  var sl = (c.positionStatus || '').toLowerCase();
+  if (sl.indexOf('incumbent') > -1) {
+    var ib = document.createElement('span'); ib.className = 'badge badge-inc'; ib.textContent = 'Incumbent'; meta.appendChild(ib);
+  }
+  if (showDistrictBadge) {
+    var db = document.createElement('span');
+    db.className = 'badge';
+    db.style.cssText = 'border-color:var(--muted);color:var(--muted);';
+    db.textContent = c.position.replace('NY0','NY').replace('NY','NY-');
+    meta.appendChild(db);
+  }
+  hdr.appendChild(meta);
+
+  var ec = document.createElement('div');
+  ec.className = 'cand-th-count';
+  ec.textContent = c.endorsements.length + ' endorsement' + (c.endorsements.length !== 1 ? 's' : '');
+  hdr.appendChild(ec);
+  col.appendChild(hdr);
+
+  if (c.endorsements.length > 0) {
+    var endorserList = document.createElement('div');
+    endorserList.className = 'cand-endorser-list';
+    hdr.addEventListener('click', function() {
+      endorserList.classList.toggle('open');
+      toggle.textContent = endorserList.classList.contains('open') ? '▴' : '▾';
+    });
+    // Group endorsements by category, sort categories and names alphabetically
+    var catMap = {};
+    c.endorsements.forEach(function(e) {
+      if (!e.name) return;
+      var cat = e.category || 'Other';
+      if (!catMap[cat]) catMap[cat] = [];
+      catMap[cat].push(e.name);
+    });
+    var sortedCats = Object.keys(catMap).sort(function(a,b){return a.localeCompare(b);});
+    sortedCats.forEach(function(cat) {
+      var catHeader = document.createElement('div');
+      catHeader.className = 'endorser-cat-header';
+      catHeader.textContent = cat;
+      endorserList.appendChild(catHeader);
+      catMap[cat].sort(function(a,b){return a.localeCompare(b);}).forEach(function(name) {
+        var item = document.createElement('div');
+        item.className = 'endorser-item';
+        var chip = document.createElement('span');
+        chip.className = 'chip' + (currentEndorser === name ? ' active' : '');
+        chip.dataset.endorser = name;
+        chip.textContent = name;
+        chip.addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          if (currentEndorser === name) {
+            currentEndorser = null;
+            endorserBubblePos = null;
+            document.getElementById('endorser-banner').classList.remove('visible');
+          } else {
+            currentEndorser = name;
+            document.getElementById('banner-text').textContent = 'Filtering by: ' + name;
+            document.getElementById('endorser-banner').classList.add('visible');
+          }
+          renderPanel();
+        });
+        item.appendChild(chip);
+        endorserList.appendChild(item);
+      });
+    });
+    col.appendChild(endorserList);
+  }
+  return col;
+}
+
+function updateFilterCount(cands) {
+  var el = document.getElementById('filter-bar-count');
+  if (!el) return;
+  // Count active (not dropped out) candidates
+  var active = cands.filter(function(c) {
+    return (c.campaignStatus || '').toLowerCase().indexOf('dropped') === -1;
+  });
+  el.textContent = active.length + ' candidate' + (active.length !== 1 ? 's' : '');
+}
+
+function renderPanel() {
+  var list = document.getElementById('candidates-list');
+  list.innerHTML = '';
+
+  /* ── ENDORSER MODE: show all endorsed candidates across all races ── */
+  if (currentEndorser) {
+    var allPools = [
+      {label: 'Governor', cands: GOV_CANDIDATES},
+      {label: 'Attorney General', cands: AG_CANDIDATES},
+      {label: 'Comptroller', cands: COMP_CANDIDATES},
+      {label: 'NYC Council District 3', cands: CD03_CANDIDATES},
+      {label: 'Congressional', cands: CANDIDATES, byDistrict: true, districtPrefix: 'NY', districtLabel: 'Congressional District '},
+      {label: 'State Senate', cands: SENATE_CANDIDATES, byDistrict: true, districtPrefix: 'SD', districtLabel: 'Senate District '},
+      {label: 'State Assembly', cands: ASSEMBLY_CANDIDATES, byDistrict: true, districtPrefix: 'AD', districtLabel: 'Assembly District '},
+    ];
+
+    // Gather all endorsed candidates across all pools
+    var allEndorsed = [];
+    allPools.forEach(function(pool) {
+      pool.cands.forEach(function(c) {
+        if (c.endorsements.some(function(e) { return e.name === currentEndorser; })) {
+          allEndorsed.push(c);
+        }
+      });
+    });
+
+    // Apply party filter
+    var filteredEndorsed = allEndorsed;
+    if (currentParty !== 'ALL') {
+      filteredEndorsed = allEndorsed.filter(function(c) {
+        if (currentParty === 'other') return c.party !== 'Democratic Party' && c.party !== 'Republican Party';
+        return c.party === currentParty;
+      });
+    }
+
+    document.getElementById('panel-title').textContent = currentEndorser;
+    document.getElementById('panel-subtitle').textContent = allEndorsed.length + ' endorsed candidate' + (allEndorsed.length !== 1 ? 's' : '');
+    document.getElementById('filter-bar').classList.add('visible');
+    var hasOtherE = allEndorsed.some(function(c) { return c.party !== 'Democratic Party' && c.party !== 'Republican Party'; });
+    document.querySelector('.filter-chip[data-party="other"]').style.display = hasOtherE ? '' : 'none';
+
+    if (!filteredEndorsed.length) {
+      var nd = document.createElement('div'); nd.className = 'no-results';
+      nd.textContent = 'No candidates match current filters.'; list.appendChild(nd);
+      redrawEndorserOverlay(currentEndorser);
+      return;
+    }
+
+    // Render each pool in order, grouped by district where applicable
+    allPools.forEach(function(pool) {
+      var poolEndorsed = pool.cands.filter(function(c) {
+        if (!c.endorsements.some(function(e) { return e.name === currentEndorser; })) return false;
+        if (currentParty !== 'ALL') {
+          if (currentParty === 'other') return c.party !== 'Democratic Party' && c.party !== 'Republican Party';
+          return c.party === currentParty;
+        }
+        return true;
+      });
+      if (!poolEndorsed.length) return;
+
+      if (pool.byDistrict) {
+        // Group by district position
+        var byDist = {};
+        poolEndorsed.forEach(function(c) {
+          if (!byDist[c.position]) byDist[c.position] = [];
+          byDist[c.position].push(c);
+        });
+        Object.keys(byDist).sort().forEach(function(pos) {
+          var distNum = parseInt(pos.replace(/^[A-Z]+/i, ''), 10);
+          var hd = document.createElement('div');
+          hd.className = 'district-header';
+          hd.textContent = pool.districtLabel + distNum;
+          list.appendChild(hd);
+          var wrapper = document.createElement('div');
+          wrapper.className = 'cand-columns';
+          byDist[pos].forEach(function(c) { wrapper.appendChild(makeCandCol(c, false)); });
+          list.appendChild(wrapper);
+        });
+      } else {
+        // Statewide / single-district races — one header for the race
+        var hd = document.createElement('div');
+        hd.className = 'district-header';
+        hd.textContent = pool.label;
+        list.appendChild(hd);
+        var wrapper = document.createElement('div');
+        wrapper.className = 'cand-columns';
+        poolEndorsed.forEach(function(c) { wrapper.appendChild(makeCandCol(c, false)); });
+        list.appendChild(wrapper);
+      }
+    });
+
+    /* sync overlay */
+    redrawEndorserOverlay(currentEndorser);
+    return;
+  }
+
+  /* ── DISTRICT MODE: original behaviour ── */
+  if (!currentPos) return;
+  var cands = CANDIDATES.filter(function(c) { return c.position === currentPos; });
+
+  if (currentParty !== 'ALL') {
+    cands = cands.filter(function(c) {
+      if (currentParty === 'other') return c.party !== 'Democratic Party' && c.party !== 'Republican Party';
+      return c.party === currentParty;
+    });
+  }
+
+  updateFilterCount(cands);
+
+  if (!cands.length) {
+    var nd2 = document.createElement('div'); nd2.className = 'no-results';
+    nd2.textContent = 'No candidates match current filters.'; list.appendChild(nd2); return;
+  }
+
+  var wrapper2 = document.createElement('div');
+  wrapper2.className = 'cand-columns';
+  cands.forEach(function(c) { wrapper2.appendChild(makeCandCol(c, false)); });
+  list.appendChild(wrapper2);
+
+  /* sync overlay */
+  clearEndorserOverlay();
+}
+
+function partyClass(p) {
+  if (!p) return 'badge-ind';
+  var l = p.toLowerCase();
+  if (l.indexOf('democrat') > -1) return 'badge-dem';
+  if (l.indexOf('republican') > -1) return 'badge-rep';
+  if (l.indexOf('working') > -1 || l.indexOf('wfp') > -1) return 'badge-wfp';
+  if (l.indexOf('green') > -1) return 'badge-grn';
+  return 'badge-ind';
+}
+
+/* ─────────────────────────────────────────────
+   ENDORSER OVERLAY
+   ───────────────────────────────────────────── */
+
+var endorserBubbleEl = null;
+var endorserBubblePos = null; // {x, y} persisted drop position
+var highlightedLayers = [];
+
+function rebuildCentroidsAndRedraw() {
+  if (currentEndorser && endorserBubbleEl) {
+    redrawEndorserOverlay(currentEndorser);
+  }
+}
+
+function highlightEndorserDistricts(endorserName) {
+
+  highlightedLayers.forEach(function(l) {
+    var c=CONG_COLORS[parseInt(l.feature.properties.District,10)-1]||'#1a6b3a'; l.setStyle({fillColor:c, fillOpacity:0.12, weight:1.2, color:c});
+  });
+  highlightedLayers = [];
+  if (endorserAsmHighlight) { mapObj.removeLayer(endorserAsmHighlight); endorserAsmHighlight = null; }
+
+  var congPositions = {};
+  CANDIDATES.forEach(function(c) {
+    c.endorsements.forEach(function(e) {
+      if (e.name === endorserName) congPositions[c.position] = true;
+    });
+  });
+
+  var asmPositions = {};
+  ASSEMBLY_CANDIDATES.forEach(function(c) {
+    c.endorsements.forEach(function(e) {
+      if (e.name === endorserName) asmPositions[c.position] = true;
+    });
+  });
+
+  var senatePositions = {};
+  SENATE_CANDIDATES.forEach(function(c) {
+    c.endorsements.forEach(function(e) {
+      if (e.name === endorserName) senatePositions[c.position] = true;
+    });
+  });
+
+  // Congressional: highlight endorsed, dim non-endorsed (keep selected district visible)
+  geoLayer.eachLayer(function(layer) {
+    var dist = parseInt(layer.feature.properties.District, 10);
+    var pos = 'NY' + (dist < 10 ? '0' : '') + dist;
+    if (congPositions[pos]) {
+      layer.setStyle({fillColor:'#b8860b', fillOpacity:0.65, weight:2.5, color:'#b8860b', opacity:1});
+      layer.bringToFront();
+      highlightedLayers.push(layer);
+    } else if (selectedCongLayer && layer === selectedCongLayer) {
+      var c = CONG_COLORS[dist - 1] || '#1a6b3a';
+      layer.setStyle({fillColor:c, fillOpacity:0.65, weight:2.5, color:c, opacity:1});
+    } else {
+      var c = CONG_COLORS[dist - 1] || '#1a6b3a';
+      layer.setStyle({fillColor:c, fillOpacity:0.04, weight:0.8, color:c, opacity:0.4});
+    }
+  });
+
+  var asmPosList = Object.keys(asmPositions);
+  if (asmPosList.length) {
+    var asmFeats = ASSEMBLY_GEOJSON.features.filter(function(f) {
+      var pos = 'AD' + (f.properties.D < 10 ? '00' : f.properties.D < 100 ? '0' : '') + f.properties.D;
+      return asmPositions[pos];
+    });
+    endorserAsmHighlight = L.geoJSON({type:'FeatureCollection', features: asmFeats}, {
+      style: function() { return {color:'#000000',fillColor:'#b8860b',fillOpacity:0.4,weight:2.5,opacity:1,dashArray:''}; },
+      interactive: false
+    }).addTo(mapObj);
+  }
+
+  var senatePosList = Object.keys(senatePositions);
+  if (senatePosList.length) {
+    var senateFeats = SENATE_GEOJSON.features.filter(function(f) {
+      var pos = 'SD' + (f.properties.D < 10 ? '0' : '') + f.properties.D;
+      return senatePositions[pos];
+    });
+    if (!window._endorserSenateHL) window._endorserSenateHL = null;
+    if (window._endorserSenateHL) { mapObj.removeLayer(window._endorserSenateHL); }
+    window._endorserSenateHL = L.geoJSON({type:'FeatureCollection',features:senateFeats},{
+      style:function(){return {color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.32,weight:2.5,opacity:1,dashArray:'6,3'};},
+      interactive: false
+    }).addTo(mapObj);
+    enforceLayerOrder();
+  } else if (window._endorserSenateHL) {
+    mapObj.removeLayer(window._endorserSenateHL); window._endorserSenateHL = null;
+  }
+
+  // NYC CD03 highlight
+  var cd03Endorsed = CD03_CANDIDATES.some(function(c) {
+    return c.endorsements.some(function(e) { return e.name === endorserName; });
+  });
+  if (window._endorserCD03HL) { mapObj.removeLayer(window._endorserCD03HL); window._endorserCD03HL = null; }
+  if (cd03Endorsed) {
+    window._endorserCD03HL = L.geoJSON(CD03_GEOJSON, {
+      style: function() { return {color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.55,weight:2.5,opacity:1,dashArray:''}; },
+      interactive: false
+    }).addTo(mapObj);
+    enforceLayerOrder();
+  }
+
+  return {
+    congCount: Object.keys(congPositions).length,
+    asmCount: asmPosList.length,
+    senateCount: senatePosList.length,
+    govCount: GOV_CANDIDATES.filter(function(c){return c.endorsements.some(function(e){return e.name===endorserName;});}).length,
+    compCount: COMP_CANDIDATES.filter(function(c){return c.endorsements.some(function(e){return e.name===endorserName;});}).length,
+    agCount: AG_CANDIDATES.filter(function(c){return c.endorsements.some(function(e){return e.name===endorserName;});}).length,
+    cd03Count: cd03Endorsed ? 1 : 0
+  };
+}
+
+function clearEndorserOverlay() {
+  if (endorserBubbleEl) {
+    endorserBubbleEl.remove();
+    endorserBubbleEl = null;
+    positionSearchBar();
+  }
+  // Restore all congressional districts to default style,
+  // but keep the currently selected district highlighted
+  if (geoLayer) {
+    geoLayer.eachLayer(function(l) {
+      var dist = parseInt(l.feature.properties.District, 10);
+      var c = CONG_COLORS[dist - 1] || '#1a6b3a';
+      if (selectedCongLayer && l === selectedCongLayer) {
+        l.setStyle({fillColor:c, fillOpacity:0.65, weight:2.5, color:c, opacity:1});
+      } else {
+        l.setStyle({fillColor:c, fillOpacity:0.12, weight:1.2, color:c, opacity:0.8});
+      }
+    });
+  }
+  highlightedLayers = [];
+  if (endorserAsmHighlight) { mapObj.removeLayer(endorserAsmHighlight); endorserAsmHighlight = null; }
+  if (window._endorserSenateHL) { mapObj.removeLayer(window._endorserSenateHL); window._endorserSenateHL = null; }
+  if (window._endorserCD03HL) { mapObj.removeLayer(window._endorserCD03HL); window._endorserCD03HL = null; }
+  if (geoLayer) updateLayerPriority();
+}
+
+function redrawEndorserOverlay(endorserName) {
+  // Save position before clearing (clearEndorserOverlay resets it)
+  var savedPos = endorserBubblePos;
+  clearEndorserOverlay();
+  // Restore position so bubble stays put after map moves
+  endorserBubblePos = savedPos;
+  if (!endorserName) return;
+
+  var congPositions = {};
+  CANDIDATES.forEach(function(c) {
+    c.endorsements.forEach(function(e) {
+      if (e.name === endorserName) congPositions[c.position] = true;
+    });
+  });
+  var asmPositions = {};
+  ASSEMBLY_CANDIDATES.forEach(function(c) {
+    c.endorsements.forEach(function(e) {
+      if (e.name === endorserName) asmPositions[c.position] = true;
+    });
+  });
+  var senatePos = {};
+  SENATE_CANDIDATES.forEach(function(c) {
+    c.endorsements.forEach(function(e) {
+      if (e.name === endorserName) senatePos[c.position] = true;
+    });
+  });
+  var congList = Object.keys(congPositions);
+  var asmList = Object.keys(asmPositions);
+  var senateList = Object.keys(senatePos);
+  var cd03List = CD03_CANDIDATES.some(function(c) {
+    return c.endorsements.some(function(e) { return e.name === endorserName; });
+  }) ? ['NYC CD03'] : [];
+  var allList = congList.concat(asmList).concat(senateList).concat(cd03List);
+  if (allList.length === 0) return;
+
+  var counts = highlightEndorserDistricts(endorserName);
+
+  var mapPanel = document.getElementById('map-panel');
+  var panelW = mapPanel.offsetWidth;
+  var panelH = mapPanel.offsetHeight;
+
+  var PAD = 80;
+  var bx = endorserBubblePos ? endorserBubblePos.x : PAD;
+  var by = endorserBubblePos ? endorserBubblePos.y : PAD;
+
+
+
+
+
+  var wrap = document.createElement('div');
+  wrap.className = 'endorser-bubble-wrap';
+
+  var bubble = document.createElement('div');
+  bubble.className = 'endorser-bubble';
+
+  var label = document.createElement('div');
+  label.className = 'bubble-label';
+  label.textContent = 'Endorser';
+
+  var name = document.createElement('div');
+  name.className = 'bubble-name';
+  name.textContent = endorserName;
+
+  var parts = [];
+  if (counts.govCount)    parts.push(counts.govCount + ' Gubernatorial');
+  if (counts.agCount)     parts.push(counts.agCount + ' Attorney General');
+  if (counts.compCount)   parts.push(counts.compCount + ' Comptroller');
+  if (counts.cd03Count)   parts.push('NYC Council District 3');
+  if (counts.congCount)   parts.push(counts.congCount + ' Congressional');
+  if (counts.senateCount) parts.push(counts.senateCount + ' Senate');
+  if (counts.asmCount)    parts.push(counts.asmCount + ' Assembly');
+
+  var count = document.createElement('div');
+  count.className = 'bubble-count';
+  count.innerHTML = parts.join('<br>');
+
+  var closeBtn = document.createElement('div');
+  closeBtn.className = 'bubble-close';
+  closeBtn.textContent = '✕';
+  closeBtn.title = 'Clear';
+
+  bubble.appendChild(label);
+  bubble.appendChild(name);
+  bubble.appendChild(count);
+  wrap.appendChild(bubble);
+  wrap.appendChild(closeBtn);
+
+  closeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    currentEndorser = null;
+    endorserBubblePos = null;
+    document.getElementById('endorser-banner').classList.remove('visible');
+    clearEndorserOverlay();
+    renderPanel();
+  });
+
+  mapPanel.appendChild(wrap);
+  endorserBubbleEl = wrap;
+  positionSearchBar();
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('clearBtn').addEventListener('click', function() {
+    clearEndorserOverlay();
+    if (currentPos) {
+      var cands = CANDIDATES.filter(function(c) { return c.position === currentPos; });
+      var hasOther = cands.some(function(c) { return c.party !== 'Democratic Party' && c.party !== 'Republican Party'; });
+      document.querySelector('.filter-chip[data-party="other"]').style.display = hasOther ? '' : 'none';
+    }
+  });
+});
+
+
+var CAND_CATS = {"0":"Current and Former Candidates","1":"Democratic Parties and Committees","2":"Democratic Socialists of America","3":"Former NYC Council Member","4":"Former NYC Official","5":"Former National Politician","6":"Former New York Federal Official","7":"Former State Legislator","8":"Former Statewide Leader","9":"Local Politician (Non-NYC)","10":"Misc.","11":"NY State Legislator","12":"NYC Council Member","13":"NYC Official","14":"National Politician","15":"New York Federal Official","16":"Organizations and PACs","17":"Republican Parties and Committees","18":"Statewide Leader","19":"Third Party","20":"Unions"};
+var ASM_PARTY = {"D":"Democratic Party","R":"Republican Party","":"","?":"?","I":"Independent"};
+var ASM_STATUS = {"I":"Incumbent","C":"Challenger","O":"Open Seat","":""};
+var ASM_CAMP = {"F":"Filed","D":"Dropped Out","":""};
+
+var ASSEMBLY_CANDIDATES_RAW = [["AD001","I","Tommy John Schiavoni","F","D",[["20","32BJ SEIU"]]],["AD001","C","Richard Carozza","F","R",[]],["AD001","C","Stephen F. Kiely","F","R",[]],["AD002","I","Jodi Giglio","F","R",[]],["AD003","I","Joe De Stefano","F","R",[]],["AD003","C","Joshua Slaughter","F","D",[]],["AD004","I","Rebecca Kassay","F","D",[["20","32BJ SEIU"]]],["AD004","C","Will Sussman","F","R",[["16","Israeli-American Civic Action Network"]]],["AD005","I","Douglas M. Smith","F","R",[]],["AD006","I","Philip Ramos","","D",[["20","32BJ SEIU"]]],["AD007","O","Patricia Kopp","F","",[]],["AD007","O","DawnMarie Kuhn","F","R",[]],["AD008","I","Michael J. Fitzpatrick","","R",[]],["AD008","C","Lynn Trupiano-O'Keefe","F","",[]],["AD009","I","Michael Durso","F","R",[]],["AD009","C","Christopher Walis","F","D",[]],["AD010","I","Steve Stern","F","D",[["20","32BJ SEIU"]]],["AD011","I","Kwani O'Pharrow","F","D",[["20","32BJ SEIU"]]],["AD011","C","Joe Cardinale","F","R",[]],["AD012","I","Keith Brown","F","D",[]],["AD012","C","Christine Pellegrino","F","D",[]],["AD012","C","Craig Herskowitz","F","D",[]],["AD012","C","David D Weber Jr","F","",[]],["AD013","I","Charles D. Lavine","F","D",[["20","32BJ SEIU"]]],["AD014","I","David McDonough","","R",[]],["AD014","C","Shannon Fredericks","F","",[]],["AD015","I","Jake Blumencranz","F","R",[]],["AD015","C","Dean Tarulli","F","",[]],["AD016","O","Kimberly Garber Keiserman","F","D",[["11","Charles Lavine (NYS Assembly District 13)"],["7","Gina Sillitti (Former NYS Assembly District 16)"],["7","Michelle Schimel (Former NYS Assembly District 16)"],["9","Christine Liu"],["9","Delia DeRiggi-Whitton (Nassau County Legislative Minority Leader and District 11)"],["9","Mariann Dalimonte (North Hempstead, NY Council District 6)"],["18","Tom DiNapoli (NYS Comptroller)"],["15","Grace Meng (NY Congressional District 6)"],["15","Tom Suozzi (NY Congressional District 3)"]]],["AD017","I","John Mikulin","F","R",[]],["AD018","I","Noah Burroughs","F","D",[["20","32BJ SEIU"]]],["AD018","C","Charlene Jackson","F","",[]],["AD018","C","Lisa Ortiz","F","",[]],["AD019","I","Ed Ra","F","R",[]],["AD019","C","Colleen Connaughton","F","",[]],["AD020","I","Eric \"Ari\" Brown","F","R",[]],["AD021","I","Judy Griffin","F","D",[["20","32BJ SEIU"]]],["AD021","C","Irene Villacci","F","",[]],["AD022","I","Michaelle C. Solages","","D",[["20","32BJ SEIU"]]],["AD023","O","Mike Scala","F","D",[]],["AD023","O","Pesach Osina","F","D",[["11","Stacey Pheffer- Amato (NYS Assembly District 23)"],["1","Queens County Democratic Party"],["20","32BJ SEIU"]]],["AD023","O","Thomas Sullivan","F","R",[["17","Queens County Republican Party"],["19","New York State Conservative Party"]]],["AD024","I","David Weprin","","D",[["20","32BJ SEIU"]]],["AD024","C","Mahtab Khan","F","D",[["16","Bangladeshi American Advocacy Group"],["16","Run for Something"],["0","Lindsey Boylan (2026 Candidate for NYC Council District 3)"]]],["AD025","I","Nily Rozic","","D",[["20","32BJ SEIU"]]],["AD025","C","Kenneth Paek","F","R",[]],["AD026","I","Edward Braunstein","F","D",[["20","32BJ SEIU"]]],["AD026","C","Philip S. Grillo","F","",[]],["AD026","C","Robert J. Speranza","F","",[]],["AD027","I","Sam Berger","F","D",[["20","32BJ SEIU"]]],["AD028","I","Andrew Hevesi","","D",[["20","32BJ SEIU"]]],["AD029","I","Alicia Hyndman","","D",[["20","32BJ SEIU"]]],["AD030","O","Brandon Castro","F","",[["3","Bob Holden (Formerly NYC Council District 30)"]]],["AD030","O","Patrick Martinez","F","",[["20","32BJ SEIU"]]],["AD030","O","Shamsul Haque","F","D",[]],["AD030","O","Somnath C. Ghimire","F","D",[]],["AD031","I","Khaleel Anderson","","D",[["20","32BJ SEIU"]]],["AD032","O","Latoya L. LeGrand","F","D",[["11","James Sanders Jr. (NYS Senate District 10)"],["11","Khaleel Anderson (NYS Assembly District 34)"],["19","Working Families Party"],["16","Citizen Action New York"]]],["AD032","O","Mohammed Molla","F","D",[]],["AD032","O","Nathaniel Hezekiah III","F","D",[["1","Queens County Democratic Party"],["20","32BJ SEIU"]]],["AD032","O","Queen Johnson","F","",[]],["AD032","O","Tunisia Morrison","F","",[]],["AD032","O","Paul M. Nichols","F","",[]],["AD033","I","Clyde Vanel","","D",[["20","32BJ SEIU"]]],["AD033","C","Oster G Bryan","F","D",[]],["AD034","O","Andreas Migias","D","D",[]],["AD034","O","Brian Romero","F","D",[["12","Julie Won (NYC Council District 26)"],["12","Justin Sanchez (NYC Council District 17)"],["12","Sandy Nurse (NYC Council District 37)"],["12","Shekar Krishnan (NYC Council District 25)"],["12","Tiffany Cab\u00e1n (NYC Council District 22)"],["3","Danny Dromm (Formerly NYC Council District 25)"],["13","Donovan Richards (Queens Borough President)"],["11","Catalina Cruz (NYS Assembly District 39)"],["11","Emily Gallagher (NYS Assembly District 50)"],["11","Jessica Gonz\u00e1lez-Rojas (NYS Assembly District 34)"],["11","Khaleel Anderson (NYS Assembly District 34)"],["11","Larinda Hooks (NYS Assembly District 35)"],["11","Mike Gianaris (NYS Senate District 36)"],["11","Steven Raga (NYS Assembly District 30)"],["11","Tony Simone (NYS Assembly District 75)"],["15","AOC (NY Congressional District 14)"],["15","Nydia Velazquez (NY Congressional District 7)"],["19","Working Families Party"],["16","Citizen Action New York"],["16","CUFFH Action"],["16","Make the Road Action"],["16","Met Council Action"],["16","New York Progressive Action Network"],["16","Run for Something"],["16","TREEage"],["20","32BJ SEIU"],["0","Andreas Migias (Former 2026 Candidate for NYS Assembly District 34)"]]],["AD034","O","Rosa Sanchez","F","",[]],["AD035","I","Larinda Hooks","F","D",[["20","32BJ SEIU"]]],["AD036","O","Christopher Wilson","F","?",[]],["AD036","O","Diana Moreno","F","D",[["12","Alexa Avil\u00e9s (NYC Council District 38)"],["12","Chi Oss\u00e9 (NYC Council District 36)"],["12","Tiffany Cab\u00e1n (NYC Council District 22)"],["13","Zohran Mamdani (NYC Mayor)"],["11","Claire Valdez (NYS Assembly District 37)"],["11","Emily Gallagher (NYS Assembly District 50)"],["11","Jabari Brisport (NYS Senate District 25)"],["11","Julia Salazar (NYS Senate District 18)"],["11","Kristen Gonzalez (NYS Senate District 59)"],["11","Marcela Mitaynes (NYS Assembly District 51)"],["11","Mike Gianaris (NYS Senate District 36)"],["11","Phara Souffrant Forrest (NYS Assembly District 57)"],["11","Sarahana Shrestha (NYS Assembly District 103)"],["11","Toby Ann Stavisky (NYS Senate District 11)"],["15","AOC (NY Congressional District 14)"],["1","Queens County Democratic Party"],["19","Working Families Party"],["2","DSA (NYC)"],["16","CAAAV Voice"],["16","Citizen Action New York"],["16","CUFFH Action"],["16","League of Conservation Voters (New York)"],["16","National Women's Liberation"],["16","Planned Parenthood Action Fund"],["16","StreetsPAC"],["16","Union of Arab Women"],["20","CWA District 1"],["20","Hotel and Gaming Trades Council"],["20","Mason Tenders' District Council"],["20","NYC District Council of Carpenters"],["20","NYSUT"],["20","PSC/CUNY"],["20","UFT"],["20","United Auto Workers Region 9A"],["20","1199 SEIU"],["20","32BJ SEIU"]]],["AD036","O","Kevin Peter Coenen Jr","F","?",[]],["AD036","O","Meherunnisa Jobaida","F","I",[["11","John Liu (NYS Senate District 16)"],["1","New American Democratic Club"],["16","Alliance of South Asian American Labor"],["16","Bangladeshi American Advocacy Group"]]],["AD036","O","Rana Abdelhamid","F","I",[["12","Julie Won (NYC Council District 26)"],["12","Nantasha Williams (NYC Council District 27)"],["15","Nydia Velazquez (NY Congressional District 7)"],["16","Africans for Political Progress"],["16","Bangladeshi Americans for Political Progress"],["16","CAIR Action NY"],["16","Minorities United in Solidarity"],["16","Muslim Democratic Club of New York"],["16","Yemeni American Merchants Association"],["14","Rashida Tlaib (MI Congressional District 12)"]]],["AD036","O","Shivani Dhir","F","D",[]],["AD037","O","Melissa A Orlando","F","",[]],["AD037","O","Pia Rahman","F","D",[]],["AD037","O","Samantha Kattan","F","D",[["12","Alexa Avil\u00e9s (NYC Council District 38)"],["12","Tiffany Cab\u00e1n (NYC Council District 22)"],["11","Claire Valdez (NYS Assembly District 37)"],["11","Diana Moreno (NYS Assembly District 36)"],["11","Emily Gallagher (NYS Assembly District 50)"],["11","Phara Souffrant Forrest (NYS Assembly District 57)"],["19","Working Families Party"],["2","DSA (NYC)"],["16","CUFFH Action"],["16","DRUM Beats"],["16","Make the Road Action"],["16","Met Council Action"],["20","Hotel and Gaming Trades Council"],["20","32BJ SEIU"]]],["AD038","I","Jenifer Rajkumar","F","D",[["12","Lynn Schulman (NYC Council District 29)"],["12","Oswald Feliz (NYC Council District 15)"],["12","Phil Wong (NYC Council District 30)"],["3","Bob Holden (Formerly NYC Council District 30)"],["3","Diana Reyna (Formerly NYC Council District 34)"],["11","Andrew Hevesi (NYS Assembly District 28)"],["11","Carl Heastie (NYS Assembly Speaker and District 83)"],["11","Charles Lavine (NYS Assembly District 13)"],["11","George Alvarez (NYS Assembly District 78)"],["11","James Sanders Jr. (NYS Senate District 10)"],["11","Joe Addabbo (NYS Senate District 15)"],["11","John Liu (NYS Senate District 16)"],["11","Kalman Yeger (NYS Assembly District 41)"],["11","Nily Rozic (NYS Assembly District 25)"],["11","Rodneyse Bichotte Hermelyn (NYS Assembly District 42)"],["11","Sam Berger (NYS Assembly District 27)"],["11","Stacey Pheffer- Amato (NYS Assembly District 23)"],["11","Steve Stern (NYS Assembly District 10)"],["11","Yudelka Tapia (NYS Assembly District 86)"],["15","Gregory Meeks (NY Congressional District 5)"],["20","Hotel and Gaming Trades Council"],["20","IBEW Local 3"],["20","New York State Troopers PBA"],["20","32BJ SEIU"]]],["AD038","C","David Orkin","F","D",[["12","Alexa Avil\u00e9s (NYC Council District 38)"],["12","Chi Oss\u00e9 (NYC Council District 36)"],["12","Jennifer Guti\u00e9rrez (NYC Council District 34)"],["12","Sandy Nurse (NYC Council District 37)"],["12","Shahana Hanif (NYC Council District 39)"],["12","Tiffany Cab\u00e1n (NYC Council District 22)"],["11","Claire Valdez (NYS Assembly District 37)"],["11","Diana Moreno (NYS Assembly District 36)"],["11","Emily Gallagher (NYS Assembly District 50)"],["11","Jabari Brisport (NYS Senate District 25)"],["11","Julia Salazar (NYS Senate District 18)"],["11","Kristen Gonzalez (NYS Senate District 59)"],["11","Sarahana Shrestha (NYS Assembly District 103)"],["19","Working Families Party"],["2","DSA (NYC)"],["16","Citizen Action New York"],["16","CUFFH Action"],["16","DRUM Beats"],["16","Hindus for Human Rights Action"],["16","Make the Road Action"],["16","New York Progressive Action Network"],["16","Tenants PAC"],["20","OPEIU Local 153"],["20","Organization of Staff Analysts"],["20","United Auto Workers Region 9A"]]],["AD039","I","Catalina Cruz","F","D",[["20","32BJ SEIU"]]],["AD039","C","Yonel E. Letellier Sosa","F","",[]],["AD040","I","Ron Kim","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["AD041","I","Kalman Yeger","","D",[["20","32BJ SEIU"]]],["AD041","C","Adam Dweck","F","D",[]],["AD041","C","Zahava Durchin","F","D",[["16","Run for Something"]]],["AD042","I","Rodneyse Bichotte Hermelyn","","D",[["20","32BJ SEIU"]]],["AD043","I","Brian A. Cunningham","F","D",[["20","32BJ SEIU"]]],["AD044","I","Robert Carroll","F","D",[["1","Jim Owles Liberal Democratic Club"],["19","Working Families Party"],["16","New York Progressive Action Network"],["16","Tenants PAC"],["20","32BJ SEIU"]]],["AD044","C","Ishtiaq Ahmed","F","D",[]],["AD045","I","Michael Novakhov","F","R",[]],["AD045","C","Joey Cohen Saban","F","",[["11","Micah Lasher (NYS Assembly District 69)"]]],["AD045","C","Renee Mitchell","F","",[]],["AD046","I","Alec Brook-Krasny","F","R",[]],["AD046","C","Christopher M McCreight","F","D",[["12","Kayla Santosuosso (NYC Council District 47)"],["3","Justin Brannan (Formerly NYC Council District 47)"],["3","Sal Albanese (Formerly NYC Council District 43)"],["11","Andrew Gounardes (NYS Senate District 26)"],["11","Robert Carroll (NYS Assembly District 44)"],["7","Iwen Chu (Former NYS Senate District 16)"],["7","Peter Abbate (Former NYS Assembly District 49)"],["1","Bay Ridge Democrats"],["1","Seaside Independent Democrats"],["19","Working Families Party"],["16","CUFFH Action"],["16","New York Progressive Action Network"],["20","32BJ SEIU"]]],["AD046","C","Marie L. Mirville-Shahzada","F","D",[]],["AD046","C","Reeza Gibbons","F","",[]],["AD047","I","William Colton","F","D",[["20","32BJ SEIU"]]],["AD047","C","John Ricottone","F","",[]],["AD047","C","Karina Bertaeva","F","",[]],["AD048","I","Simcha Eichenstein","F","D",[]],["AD049","I","Lester Chang","F","R",[]],["AD049","C","Joyce Xiaoqiong Xie","F","D",[]],["AD049","C","Tony Ying Ko","F","D",[]],["AD050","I","Emily Gallagher","F","D",[["19","Working Families Party"],["16","Citizen Action New York"],["16","New York Communities for Change"],["20","32BJ SEIU"]]],["AD051","I","Marcela Mitaynes","F","D",[["16","Progressive Voters Network"]]],["AD052","I","Jo Anne Simon","F","D",[["19","Working Families Party"],["20","32BJ SEIU"]]],["AD052","C","Lydia Bella Green","F","D",[]],["AD053","I","Maritza Davila","","D",[["20","32BJ SEIU"]]],["AD054","I","Erik Dilan","F","D",[["20","32BJ SEIU"]]],["AD054","C","Christian Celeste Tate","F","D",[["12","Alexa Avil\u00e9s (NYC Council District 38)"],["12","Jennifer Guti\u00e9rrez (NYC Council District 34)"],["12","Sandy Nurse (NYC Council District 37)"],["12","Shahana Hanif (NYC Council District 39)"],["12","Tiffany Cab\u00e1n (NYC Council District 22)"],["11","Diana Moreno (NYS Assembly District 36)"],["11","Emily Gallagher (NYS Assembly District 50)"],["11","Jabari Brisport (NYS Senate District 25)"],["18","Antonio Delgado (NYS Lieutenant Governor)"],["1","Lambda Independent Democrats"],["1","New Kings Democrats"],["19","Working Families Party"],["2","DSA (NYC)"],["16","Citizen Action New York"],["16","CUFFH Action"],["16","Make the Road Action"],["16","New York Communities for Change"],["16","New York Progressive Action Network"],["16","Progressive Voters Network"],["16","Run for Something"]]],["AD055","I","Latrice Walker","","D",[["16","New York Communities for Change"]]],["AD055","C","Yahemia Harris","F","",[]],["AD056","I","Stefani Zinerman","F","D",[["20","32BJ SEIU"]]],["AD056","C","Eon Huntley","F","D",[["12","Alexa Avil\u00e9s (NYC Council District 38)"],["12","Chi Oss\u00e9 (NYC Council District 36)"],["11","Diana Moreno (NYS Assembly District 36)"],["11","Emily Gallagher (NYS Assembly District 50)"],["11","Jabari Brisport (NYS Senate District 25)"],["11","Kristen Gonzalez (NYS Senate District 59)"],["11","Phara Souffrant Forrest (NYS Assembly District 57)"],["18","Antonio Delgado (NYS Lieutenant Governor)"],["1","New Kings Democrats"],["1","504 Democratic Club"],["19","Working Families Party"],["2","DSA (NYC)"],["16","CUFFH Action"],["16","Met Council Action"],["16","New York Communities for Change"],["16","New York Progressive Action Network"],["16","Progressive Voters Network"],["16","Tenants PAC"],["20","United Auto Workers Region 9A"]]],["AD056","C","Michael Bailey, II.","F","D",[]],["AD057","I","Phara Souffrant Forrest","F","D",[["1","New Kings Democrats"],["19","Working Families Party"],["16","Citizen Action New York"],["16","New York Communities for Change"],["16","Progressive Voters Network"],["20","United Auto Workers Region 9A"],["20","32BJ SEIU"]]],["AD057","C","Samantha Nichole Johnson","F","D",[]],["AD058","I","Monique Chandler-Waterman","","D",[["20","32BJ SEIU"]]],["AD059","I","Jaime Williams","F","D",[]],["AD059","C","Jibreel Jalloh","F","D",[["1","New Kings Democrats"],["19","Working Families Party"],["16","Africans for Political Progress"],["16","Muslim Democratic Club of New York"],["16","New York Communities for Change"],["20","1199 SEIU"]]],["AD060","I","Nikki Lucas","","D",[["20","32BJ SEIU"]]],["AD060","C","Davon Lashawn Phillips","F","",[]],["AD060","C","Norman Ramsay","F","",[]],["AD061","I","Charles Fall","","D",[["1","Richmond County Democratic Party"],["20","32BJ SEIU"]]],["AD061","C","Casey O'Connor-Manasia","F","",[]],["AD062","I","Michael Reilly","F","R",[]],["AD062","C","John Anthony Tabacco","F","",[]],["AD063","I","Sam Pirozzolo","F","R",[]],["AD063","C","Michael Arvanites","F","D",[]],["AD064","I","Michael Tannousis","F","R",[]],["AD064","C","Matthew Mobilia","F","D",[["1","Richmond County Democratic Party"]]],["AD064","C","Shpetim Qorraj","F","D",[["1","Richmond County Democratic Party"]]],["AD065","O","Helen Qiu","F","R",[]],["AD065","O","Illapa Sairitupac","F","D",[["11","Diana Moreno (NYS Assembly District 36)"],["11","Kristen Gonzalez (NYS Senate District 59)"],["2","DSA (NYC)"],["16","Met Council Action"],["16","Tenants PAC"],["20","Hotel and Gaming Trades Council"],["20","32BJ SEIU"]]],["AD065","O","Jasmine Sanchez","F","D",[["1","Three Bridges Democratic Club"]]],["AD065","O","Jay Jacky Wong","F","",[]],["AD065","O","Lilah Mejia","F","",[]],["AD065","O","Mariama N. James","F","D",[["3","Alan Gerson (Formerly NYC Council District 1)"],["7","Alice Cancel (Former NYS Assembly District 65)"],["1","Downtown Independent Democrats"],["10","LaborPress"]]],["AD065","O","Wei-Li Tjong","F","",[]],["AD066","O","Benjamin Yee","F","D",[]],["AD066","O","Corinne Arnold","F","D",[]],["AD066","O","David Alfasi Siffert","F","D",[["11","Emily Gallagher (NYS Assembly District 50)"],["11","Jabari Brisport (NYS Senate District 25)"],["1","Village Independent Democrats"],["16","New York Progressive Action Network"]]],["AD066","O","Furhan Ahmad","F","?",[]],["AD066","O","Jeannine Kiely","F","D",[["12","Christopher Marte (NYC Council District 1)"],["3","Justin Brannan (Formerly NYC Council District 47)"],["13","Brad Hoylman-Sigal (Manhattan Borough President)"],["11","Deborah Glick (NYS Assembly District 66)"],["6","Carolyn Maloney"],["1","Coalition for a District Alternative"],["1","Downtown Independent Democrats"],["1","Village Reform Democratic Club"],["1","504 Democratic Club"]]],["AD066","O","Ryder B. Kessler","F","D",[["12","Justin Sanchez (NYC Council District 17)"],["12","Shaun Abreu (NYC Council District 7)"],["13","Mark Levine (NYC Comptroller)"],["11","Keith Powers (NYS Assembly District 74)"],["19","Working Families Party"],["16","Citizen Action New York"],["16","CUFFH Action"],["16","Run for Something"],["20","32BJ SEIU"],["0","Sarah Batchu (Former 2026 Candidate for NYS Assembly District 74)"]]],["AD067","I","Linda Rosenthal","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["AD068","I","Eddie Gibbs","F","D",[["11","Yudelka Tapia (NYS Assembly District 86)"],["20","32BJ SEIU"]]],["AD068","C","Diana Ayala","F","D",[]],["AD068","C","Tameeka Garcia-Taylor","F","D",[]],["AD068","C","Tamika Mapp","F","D",[]],["AD068","C","William P. Smith","F","",[]],["AD068","C","Xavier A. Santiago","F","",[]],["AD069","O","Eli Clemans Northrup","F","D",[["12","Harvey Epstein (NYC Council District 2)"],["3","Helen Rosenthal (Formerly NYC Council District 6)"],["11","Amanda Septimo (NYS Assembly District 84)"],["11","Andrew Hevesi (NYS Assembly District 28)"],["11","Anna Kelles (NYS Assembly District 125)"],["11","Claire Valdez (NYS Assembly District 37)"],["11","Emily Gallagher (NYS Assembly District 50)"],["11","Gabriella Romero (NYS Assembly District 109)"],["11","Gustavo Rivera (NYS Senate District 33)"],["11","Jabari Brisport (NYS Senate District 25)"],["11","Julia Salazar (NYS Senate District 18)"],["11","Latrice Walker (NYS Assembly District 55)"],["11","Sarahana Shrestha (NYS Assembly District 103)"],["1","Broadway Democrats"],["1","Columbia University Democrats"],["1","Three Parks Independent Democrats"],["19","Working Families Party"],["16","Citizen Action New York"],["16","CUFFH Action"],["16","Jews For Racial and Economic Justice (JFREJ)"],["16","Met Council Action"],["16","Run for Something"],["16","Sunrise NYC"],["16","Tenants PAC"],["20","International Union of Painters , Glaziers & Allied Trades District Council 9"],["20","United Auto Workers Region 9A"],["5","Howard Dean (Former VT Governor and DNC Chair)"],["0","Zephyr Teachout (Former 2021 Candidate NYS Attorney General)"],["10","Chigozie Onyema (NJ Assembly District 28)"]]],["AD069","O","Stephanie Rachel Ruskay","F","D",[["12","Shaun Abreu (NYC Council District 7)"],["13","Brad Hoylman-Sigal (Manhattan Borough President)"],["13","Mark Levine (NYC Comptroller)"],["4","Ruth Messinger (Former Manhattan Borough President)"],["11","Deborah Glick (NYS Assembly District 66)"],["11","Keith Powers (NYS Assembly District 74)"],["11","Nily Rozic (NYS Assembly District 25)"],["8","Bob Abrams"],["20","32BJ SEIU"]]],["AD070","I","Jordan Wright","F","D",[["20","32BJ SEIU"]]],["AD070","C","Conrad Blackburn","F","D",[["12","Alexa Avil\u00e9s (NYC Council District 38)"],["12","Chi Oss\u00e9 (NYC Council District 36)"],["12","Tiffany Cab\u00e1n (NYC Council District 22)"],["11","Claire Valdez (NYS Assembly District 37)"],["11","Diana Moreno (NYS Assembly District 36)"],["11","Emily Gallagher (NYS Assembly District 50)"],["11","Jabari Brisport (NYS Senate District 25)"],["11","Julia Salazar (NYS Senate District 18)"],["11","Sarahana Shrestha (NYS Assembly District 103)"],["19","Working Families Party"],["2","DSA (NYC)"],["16","Citizen Action New York"],["16","CUFFH Action"],["16","Met Council Action"],["16","New York Communities for Change"],["16","New York Progressive Action Network"],["16","Progressive Voters Network"],["16","Run for Something"],["20","United Auto Workers Region 9A"]]],["AD070","C","Jakub Alin Vacin","F","D",[]],["AD071","I","Al Taylor","F","D",[["20","32BJ SEIU"]]],["AD071","C","Julien Segura","F","D",[["16","Progressive Voters Network"]]],["AD072","I","Manny De Los Santos","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["AD073","O","Dan Latner","F","R",[]],["AD073","O","Vanessa Aronson","F","D",[["11","Erik Bottcher (NYS Senate District 47)"],["7","Elijah Reichlin-Melnick (Former NYS Senate District 38)"],["7","Mark Alan Siegel (Former NYS Assembly District 66)"],["16","League of Humane Voters of New York"],["16","Lights Out Coalition"],["16","NYCLASS"],["16","Run for Something"],["20","32BJ SEIU"]]],["AD074","I","Keith Thomas Powers","F","D",[["12","Christopher Marte (NYC Council District 1)"],["12","Harvey Epstein (NYC Council District 2)"],["12","Julie Menin (NYC Council Speaker and District 5)"],["12","Virginia Maloney (NYC Council District 4)"],["13","Mark Levine (NYC Comptroller)"],["11","Brian Kavanagh (NYS Senate District 27)"],["11","Grace Lee (NYS Assembly District 65)"],["18","Letitia James (NYS Attorney General)"],["15","Dan Goldman (NY Congressional District 10)"],["15","Jerry Nadler (NY Congressional District 12)"],["6","Carolyn Maloney"],["1","Eleanor Roosevelt Independent Democrats"],["1","Manhattan Democratic Party"],["1","Samuel Tilden Democratic Club"],["1","Stonewall Democrats"],["16","League of Conservation Voters (New York)"],["16","Planned Parenthood Action Fund"],["16","StreetsPAC"],["20","Hotel and Gaming Trades Council"],["20","Laborers' International Union of North America (LIUNA NY)"],["20","NYSUT"],["20","PSC/CUNY"],["20","UFT"],["20","32BJ SEIU"],["0","Brad Lander (2026 Candidate for NY Congressional District 10)"]]],["AD074","C","Angela Aquino","F","",[]],["AD074","C","Gabriel Turzo","F","D",[]],["AD074","C","Joseph Foley","F","R",[]],["AD074","C","Joshua E Arnon","D","D",[["16","Beyond the Ballot"],["16","Organize for Peace"],["16","Progressive Voters Network"],["16","Run for Something"]]],["AD074","C","Kevin Michael O'Keefe","F","D",[]],["AD074","C","Marquis Jenkins","F","D",[]],["AD074","C","Sarah Batchu","D","D",[["0","Lindsey Boylan (2026 Candidate for NYC Council District 3)"]]],["AD074","C","Veronica Gonzalez","F","",[]],["AD075","I","Tony Simone","F","D",[["20","32BJ SEIU"]]],["AD075","C","Christine Fontanelli","F","",[]],["AD075","C","Danny Valdes","D","D",[]],["AD075","C","Jesse Nathanson Greenwald","D","D",[]],["AD076","I","Rebecca Seawright","F","D",[["19","Working Families Party"]]],["AD077","I","Landon Dais","","D",[["20","32BJ SEIU"]]],["AD077","C","Shakur Joseph","F","",[]],["AD078","I","George Alvarez","F","D",[["20","32BJ SEIU"]]],["AD079","I","Chantel Jackson","F","D",[["20","32BJ SEIU"]]],["AD080","I","John Zaccaro Jr.","","D",[["20","32BJ SEIU"]]],["AD081","I","Jeffrey Dinowitz","F","D",[["20","32BJ SEIU"]]],["AD081","C","Morgan Evers","F","D",[["1","Unity Democratic Club"]]],["AD082","I","Michael Benedetto","F","D",[]],["AD082","C","Felix Omozusi","F","D",[]],["AD082","C","Irene Gail Guanill","F","?",[]],["AD082","C","Jake Martin Kuhl","F","?",[]],["AD083","I","Carl Heastie","","D",[["20","32BJ SEIU"]]],["AD084","I","Amanda Septimo","","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["AD084","C","Christina Kaylee Cover","D","D",[]],["AD084","C","Courtland W. Hankins","F","D",[]],["AD084","C","Gregory Blackmon","F","?",[]],["AD084","C","Hector Feliciano","F","",[]],["AD085","I","Emerita Torres","","D",[["19","Working Families Party"],["20","32BJ SEIU"]]],["AD086","I","Yudelka Tapia","","D",[["20","32BJ SEIU"]]],["AD086","C","Shery Olivo","F","R",[]],["AD087","I","Karines Reyes","F","D",[["19","Working Families Party"],["16","Citizen Action New York"],["16","DRUM Beats"],["20","32BJ SEIU"]]],["AD087","C","Zakir Choudhury","F","?",[]],["AD088","I","Amy Paulin","","D",[["20","32BJ SEIU"]]],["AD089","I","J. Gary Pretlow","","D",[["20","32BJ SEIU"]]],["AD089","C","Brandon J. Neider","F","R",[]],["AD090","O","Frank Jereis","F","D",[["11","Shelley Mayer (NYS Senate District 37)"],["9","Jose Alvarado"],["9","Mike Spano (Yonkers, NY Mayor)"],["9","Shanae Williams"],["1","Yonkers Democratic Committee"],["16","New York Hispanic American Law Enforcement Officers H-PAC"],["20","AFSCME"],["20","IAFF Local 628 Yonkers Firefighters"],["20","Yonkers Police Benevolent Association"],["20","Yonkers Uniformed Fire Officers Association"],["20","32BJ SEIU"]]],["AD090","O","Jeannette Garcia","F","D",[]],["AD090","O","John Isaac","F","R",[]],["AD091","I","Steven Otis","","D",[["20","32BJ SEIU"]]],["AD092","I","MaryJane Shimsky","F","D",[["20","32BJ SEIU"]]],["AD092","C","Robert J Welch","F","",[]],["AD093","I","Chris Burdick","","D",[["20","32BJ SEIU"]]],["AD093","C","Braille Amani Diaz","F","",[]],["AD094","I","Matt Slater","F","R",[]],["AD094","C","Daniel Guzman","F","D",[]],["AD095","I","Dana Levenberg","F","D",[["20","32BJ SEIU"]]],["AD095","C","Laurie Ryan","F","",[]],["AD096","I","Patrick Carroll","F","D",[]],["AD096","C","Brett L. Yagel","F","R",[]],["AD096","C","Pottakulathu T. Thomas","F","",[]],["AD097","I","Aron Wieder","F","D",[]],["AD097","C","Robert Bonomolo Jr","F","",[]],["AD098","I","Karl Brabenec","F","R",[]],["AD099","I","Chris Eachus","F","D",[["20","32BJ SEIU"]]],["AD099","C","Richard Vargus","F","R",[]],["AD100","I","Paula Kay","F","D",[["20","32BJ SEIU"]]],["AD100","C","David Lawrence Furlin","F","",[]],["AD101","I","Brian Maher","F","R",[]],["AD101","C","Pasquale Enrico Lucenti","F","D",[]],["AD102","O","Janet Tweed","F","D",[]],["AD102","O","Marcus J Molinaro","F","",[]],["AD102","O","Mary T. Finneran","F","D",[]],["AD102","O","Richard M. Amedure Jr.","F","R",[]],["AD102","O","Thomas Lee Boomhower","F","D",[["9","Christopher Hanse (Coxsackie, NY Trustee)"],["9","Natasha Law (Catskill, NY Village President)"],["9","Timothy Knight (Middleburgh, NY Mayor)"],["16","Run for Something"]]],["AD103","I","Sarahana Shrestha","F","D",[["1","Dutchess County Democrats"],["1","Ulster County Democrats"],["19","Working Families Party"],["2","DSA (Mid-Hudson Valley)"],["16","Progressive Voters Network"]]],["AD103","C","Santos Lopez","F","",[]],["AD104","I","Jonathan Jacobson","F","D",[["20","32BJ SEIU"]]],["AD104","C","Ali T. Muhammad","F","",[]],["AD105","I","Anil Beephan Jr.","F","R",[]],["AD105","C","Brooklyn Frances Talarico","F","",[]],["AD106","I","Didi Barrett","F","D",[["20","32BJ SEIU"]]],["AD106","C","Gregory A Campus","F","",[]],["AD106","C","Samuel Robert Hodge","F","D",[["18","Antonio Delgado (NYS Lieutenant Governor)"]]],["AD106","C","Stephan L. Krakower","F","R",[]],["AD107","I","Scott Bendett","F","R",[]],["AD107","C","Chloe E. Pierce","F","D",[]],["AD107","C","Christopher J. Lansing","F","D",[]],["AD108","I","John McDonald","F","D",[]],["AD108","C","Joseph John Adamo","F","",[]],["AD109","I","Gabriella Romero","F","D",[["16","Progressive Voters Network"],["20","32BJ SEIU"]]],["AD110","I","Phillip Steck","F","D",[["20","32BJ SEIU"]]],["AD110","C","Frank Mauriello","F","",[]],["AD111","I","Angelo Santabarbara","F","D",[]],["AD111","C","Nicholas Sokaris","F","",[]],["AD112","I","Mary Beth Walsh","F","R",[]],["AD112","C","Mario Luciano Fantini","F","D",[]],["AD113","I","Carrie Woerner","F","D",[["20","32BJ SEIU"]]],["AD114","I","Matt Simpson","F","R",[]],["AD114","C","John Gunther","F","D",[]],["AD115","I","Michael Cashman","F","D",[]],["AD115","C","Brent Davison","F","R",[]],["AD115","C","Brigid Farrell","F","D",[]],["AD116","I","Scott Gray","F","R",[]],["AD117","O","Robert Frank Walters Jr","F","R",[]],["AD117","O","Dennis Gordon","F","",[]],["AD117","O","Tammie Jeanne Nabywaniec","F","R",[["11","Ken Blankenbush (NYS Assembly District 117)"],["17","Oneida County Republican Party"]]],["AD118","O","Chanda King","F","",[]],["AD118","O","Charles C Potter","F","R",[]],["AD118","O","Christina VanValkenburgh","F","",[]],["AD118","O","Colleen Maxwell","F","D",[]],["AD118","O","Heather A Scribner","F","R",[["9","Amy Praught (Johnstown, NY Mayor)"],["9","Gary Antonucci (Gloversville, NY Mayor)"],["17","Oneida County Republican Party"]]],["AD119","O","Daniel Fusco","F","R",[["17","Oneida County Republican Party"]]],["AD119","O","Joe Betar","F","D",[]],["AD119","O","Jonathan Lipe","F","",[]],["AD119","O","Michael Gentile","F","",[]],["AD120","O","James Weatherup","F","",[]],["AD120","O","Jim Cannon","F","D",[]],["AD120","O","Timothy Charles Allers","F","",[]],["AD121","I","Joe Angelino","F","R",[]],["AD121","C","Vicki Renee Davis","F","D",[]],["AD122","I","Brian Miller","F","R",[["17","Oneida County Republican Party"]]],["AD122","C","Anthony L Micaroni","F","",[]],["AD122","C","Ihor Semko","F","",[]],["AD123","O","Daniel Livingston","F","",[["16","Citizen Action New York"]]],["AD123","O","Daniel Norton","F","D",[]],["AD123","O","Jermaine Graham","F","",[]],["AD123","O","Lynn Parker","F","",[]],["AD123","O","Nick R. Libous","F","",[]],["AD124","I","Christopher Friend","","R",[]],["AD124","C","Andrew G Fagan","F","D",[]],["AD124","C","Anthony Michael Cantando","F","D",[]],["AD124","C","Kurtis James VanWuyckhuyse","F","",[]],["AD124","C","Miriam Osorio","F","D",[]],["AD125","I","Anna Kelles","F","D",[["16","Citizen Action New York"]]],["AD126","I","John Lemondes","F","R",[]],["AD126","C","Ian Jacob Phillips","F","D",[]],["AD127","I","Albert A. Stirpe Jr.","F","D",[["20","32BJ SEIU"]]],["AD127","C","Timothy R Kelly","F","",[]],["AD128","I","Pamela Hunter","","D",[["20","32BJ SEIU"]]],["AD128","C","Patrick J Becher","F","",[]],["AD129","I","William Magnarelli","F","D",[["20","32BJ SEIU"]]],["AD129","C","Maurice Robert Brown","F","D",[["19","Working Families Party"],["2","DSA (Syracuse)"],["16","Citizen Action New York"],["16","New York Progressive Action Network"]]],["AD130","I","Brian Manktelow","F","R",[]],["AD130","C","Carl Fitzsimmons","F","",[]],["AD130","C","George Dobbins","F","",[["19","Wayne County Conservative Party"]]],["AD130","C","Joseph Lamanna","F","D",[["1","Webster Democratic Committee"],["20","United Auto Workers Region 9A"]]],["AD130","C","Mark C Johns","F","",[]],["AD130","C","Summer L Johnson","F","",[]],["AD131","I","Jeff Gallahan","","R",[["17","Courtland County Republican Party"]]],["AD131","C","Phillip Fleming","F","",[]],["AD132","I","Phil Palmesano","","R",[]],["AD133","I","Andrea Bailey","F","R",[]],["AD134","I","Josh Jensen","F","R",[]],["AD135","I","Jennifer Lunsford","F","D",[]],["AD135","C","Kalinda Washington","F","",[]],["AD136","I","Sarah Clark","","D",[]],["AD136","C","Clianda Florence","F","",[]],["AD137","I","Demond Meeks","F","D",[]],["AD137","C","David J. Ferris","F","",[]],["AD137","C","Mercedes Vazquez Simmons","F","D",[]],["AD138","I","Harry Bronson","","D",[["20","32BJ SEIU"]]],["AD138","C","Tracy A DiFlorio","F","",[]],["AD139","I","Stephen Hawley","","R",[]],["AD140","I","William Conrad III","","D",[["20","32BJ SEIU"]]],["AD141","I","Crystal Peoples-Stokes","","D",[["20","32BJ SEIU"]]],["AD142","I","Patrick Burke","F","D",[["20","32BJ SEIU"]]],["AD142","C","Gary A Dickson","","R",[["17","Erie County Republican Committee"]]],["AD143","I","Patrick Chludzinski","F","R",[["17","Erie County Republican Committee"]]],["AD143","C","Ryan Taughrin","F","",[]],["AD144","I","Paul Bologna","F","R",[["17","Erie County Republican Committee"]]],["AD144","C","Donna L Dye Sholk","F","",[]],["AD145","O","Nate McMurray","F","",[]],["AD145","O","Rebecca J Wydysh","F","R",[["11","Angelo Morinello (NYS Assembly District 145)"],["17","Erie County Republican Committee"],["19","Erie County Conservative Party"]]],["AD146","I","Karen McMahon","F","D",[["20","32BJ SEIU"]]],["AD147","I","David DiPietro","","R",[["17","Erie County Republican Committee"]]],["AD148","I","Joe Sempolinski","F","R",[]],["AD149","O","Adam Bojak","F","D",[["11","Diana Moreno (NYS Assembly District 36)"],["11","Emily Gallagher (NYS Assembly District 50)"],["9","Brian Nowak (Cheektowaga, NY Town Supervisor)"],["9","Stephen Nowicki (Cheektowaga, NY Town Council Member)"],["19","Working Families Party"],["2","DSA (Buffalo)"],["2","DSA (National)"],["2","DSA (NYC)"],["16","Citizen Action New York"],["20","IBEW Local 2104"],["20","United Auto Workers Region 9A"],["20","Workers United RRJB"]]],["AD149","O","Alexandre E. Burgos","F","D",[]],["AD149","O","Holly Park","F","D",[]],["AD149","O","Karen Lynn Hoak","F","D",[]],["AD149","O","Kevin Deese","F","D",[]],["AD150","I","Andrew Molitor","F","R",[]],["AD150","C","Thomas A. Carle","F","",[]]];
+
+var ASSEMBLY_CANDIDATES = ASSEMBLY_CANDIDATES_RAW.map(function(r){
+  return {position:r[0],positionStatus:ASM_STATUS[r[1]]||r[1],candidate:r[2],
+    campaignStatus:ASM_CAMP[r[3]]||r[3],party:ASM_PARTY[r[4]]||r[4],
+    endorsements:r[5].map(function(e){return {category:CAND_CATS[e[0]],name:e[1]};})};
+});
+
+var ASSEMBLY_GEOJSON = (function(){
+  var S=10000;
+  function dr(enc){
+    var pts=[],lng=enc[0][0]/S,lat=enc[0][1]/S;pts.push([lng,lat]);
+    for(var i=1;i<enc.length;i++){lng+=enc[i][0]/S;lat+=enc[i][1]/S;pts.push([Math.round(lng*S)/S,Math.round(lat*S)/S]);}
+    return pts;
+  }
+  var features=[];
+  for(var d=1;d<=150;d++){
+    var polys=ASM_GEO_DELTA[String(d)];
+    var coords=polys.map(function(poly){return poly.map(dr);});
+    var geom=coords.length===1?{type:'Polygon',coordinates:coords[0]}:{type:'MultiPolygon',coordinates:coords};
+    features.push({type:'Feature',geometry:geom,properties:{D:d}});
+  }
+  return {type:'FeatureCollection',features:features};
+})();
+
+var currentAssemblyDistrict = null;
+
+/* ── Assembly overlay ── */
+var assemblyLayer = null;
+var assemblyVisible = false;
+var selectedAssemblyLayer = null;
+var endorserAsmHighlight = null;
+window._endorserCD03HL = null;
+
+function badgeClass(status) {
+  if (status === 'Incumbent') return 'badge-incumbent';
+  if (status === 'Challenger') return 'badge-challenger';
+  if (status === 'Open Seat') return 'badge-open';
+  if (status === 'Dropped Out') return 'badge-dropped';
+  return '';
+}
+
+/* Layer click priority: assembly > senate > congressional */
+function updateLayerPriority() {
+  var none = function(l) { if(l._path) l._path.style.pointerEvents='none'; };
+  var all  = function(l) { if(l._path) l._path.style.pointerEvents='';    };
+  if (assemblyVisible) {
+    if (geoLayer) geoLayer.eachLayer(none);
+    if (senateLayer) senateLayer.eachLayer(none);
+    if (assemblyLayer) assemblyLayer.eachLayer(all);
+  } else if (senateVisible) {
+    if (geoLayer) geoLayer.eachLayer(none);
+    if (senateLayer) senateLayer.eachLayer(all);
+  } else {
+    if (geoLayer) geoLayer.eachLayer(all);
+  }
+  enforceLayerOrder();
+}
+
+/* Z-order: congressional (bottom) → senate → assembly (top) */
+function enforceLayerOrder() {
+  if (geoLayer && mapObj.hasLayer(geoLayer)) geoLayer.bringToFront();
+  if (senateLayer && mapObj.hasLayer(senateLayer)) senateLayer.bringToFront();
+  if (assemblyLayer && mapObj.hasLayer(assemblyLayer)) assemblyLayer.bringToFront();
+}
+
+function initAssemblyOverlay() {
+  var btn = document.getElementById('assemblyToggle');
+  btn.addEventListener('click', function() {
+    assemblyVisible = !assemblyVisible;
+    btn.classList.toggle('active', assemblyVisible);
+    if (assemblyVisible) {
+      if (!assemblyLayer) {
+        assemblyLayer = L.geoJSON(ASSEMBLY_GEOJSON, {
+          style: function() {
+            return {color:'#555',fillColor:'#555',fillOpacity:0.06,weight:1.5,opacity:0.6,dashArray:'1,4',lineCap:'round'};
+          },
+          onEachFeature: function(feature, layer) {
+            var num = parseInt(feature.properties.D, 10);
+            layer.bindTooltip('Assembly District ' + num, {
+              sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
+            });
+            layer.on('mouseover', function() {
+              if (!currentEndorser) layer.closeTooltip();
+            });
+            layer.on('click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              // Deselect if clicking already-selected district
+              if (currentAssemblyDistrict === feature.properties.D) {
+                clearAssemblySelection();
+                return;
+              }
+              var clickLL = e.latlng, lng = clickLL.lng, lat = clickLL.lat;
+              var foundCong = null;
+              function pointInRing(ring,px,py){
+                var inside=false;
+                for(var i=0,j=ring.length-1;i<ring.length;j=i++){
+                  var xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+                  if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))inside=!inside;
+                }
+                return inside;
+              }
+              function pointInGeom(geom,px,py){
+                if(geom.type==='Polygon')return pointInRing(geom.coordinates[0],px,py);
+                if(geom.type==='MultiPolygon')return geom.coordinates.some(function(p){return pointInRing(p[0],px,py);});
+                return false;
+              }
+              geoLayer.eachLayer(function(cl){
+                if(foundCong)return;
+                if(pointInGeom(cl.feature.geometry,lng,lat))foundCong=cl;
+              });
+              if (foundCong) {
+                var num=parseInt(foundCong.feature.properties.District,10);
+                var pos='NY'+(num<10?'0':'')+num;
+                if(currentPos!==pos) onDistrictClick(num,pos,clickLL,true);
+              }
+              onAssemblyClick(feature.properties.D, layer);
+            });
+          }
+        });
+        assemblyLayer.addTo(mapObj);
+      } else {
+        assemblyLayer.addTo(mapObj);
+      }
+      updateLayerPriority();
+    } else {
+      if (assemblyLayer) mapObj.removeLayer(assemblyLayer);
+      clearAssemblySelection();
+      updateLayerPriority();
+    }
+  });
+  document.getElementById('crumb-back').addEventListener('click', clearAssemblySelection);
+}
+
+function onAssemblyClick(districtNum, layer) {
+  mobileExpandPanel();
+  clearAssemblySelection(true);
+  currentAssemblyDistrict = districtNum;
+  selectedAssemblyLayer = layer;
+  layer.setStyle({color:'#000000',fillColor:'#b8860b',fillOpacity:0.55,weight:2.5,opacity:1,dashArray:''});
+  enforceLayerOrder();
+
+  var pos = 'AD'+(districtNum<10?'00':districtNum<100?'0':'')+districtNum;
+
+  var cands = ASSEMBLY_CANDIDATES.filter(function(c){return c.position===pos;});
+  var titleEl = document.getElementById('panel-title');
+  titleEl.innerHTML='';
+  titleEl.appendChild(document.createTextNode('Assembly District '+districtNum));
+  var isOpen = cands.some(function(c){return c.positionStatus==='Open Seat';});
+  var asmIncumbent=cands.find(function(c){return c.positionStatus==='Incumbent';});
+  var asmSubEl=document.getElementById('panel-subtitle');
+  asmSubEl.innerHTML='';
+  if (isOpen) {
+    var ob=document.createElement('span');
+    ob.className='badge badge-open';ob.textContent='Open Seat';asmSubEl.appendChild(ob);
+  } else {
+    asmSubEl.textContent=asmIncumbent?asmIncumbent.candidate:'';
+  }
+  var hasOther=cands.some(function(c){return c.party!=='Democratic Party'&&c.party!=='Republican Party';});
+  document.querySelector('.filter-chip[data-party="other"]').style.display=hasOther?'':'none';
+  currentParty='ALL';
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.toggle('active',c.dataset.party==='ALL');});
+  renderAssemblyPanel();
+  updateClearAllBtn();
+}
+
+function renderAssemblyPanel() {
+  var districtNum = currentAssemblyDistrict;
+  var pos = 'AD'+(districtNum<10?'00':districtNum<100?'0':'')+districtNum;
+  var cands = ASSEMBLY_CANDIDATES.filter(function(c){return c.position===pos;});
+  var filtered = cands.filter(function(c){
+    if(currentParty==='ALL') return true;
+    if(currentParty==='other') return c.party!=='Democratic Party'&&c.party!=='Republican Party';
+    return c.party===currentParty;
+  });
+  updateFilterCount(filtered);
+  var list=document.getElementById('candidates-list'); list.innerHTML='';
+  if(!filtered.length){
+    var nd=document.createElement('div');nd.className='no-results';
+    nd.textContent='No candidates match current filters.';list.appendChild(nd);return;
+  }
+  var wrapper=document.createElement('div');wrapper.className='cand-columns';
+  filtered.forEach(function(c){wrapper.appendChild(makeCandCol(c,false));});
+  list.appendChild(wrapper);
+}
+
+function clearAssemblySelection(keepPos) {
+  currentAssemblyDistrict = null;
+  if (selectedAssemblyLayer) {
+    if (assemblyLayer) assemblyLayer.resetStyle(selectedAssemblyLayer);
+    selectedAssemblyLayer = null;
+  }
+  document.getElementById('assembly-crumb').style.display='none';
+  updateClearAllBtn();
+  updateLayerPriority();
+}
+
+
+/* ── Senate data ── */
+var SENATE_CANDIDATES_RAW = [["SD01","I","Anthony Palumbo","F","R",[]],["SD01","C","E. Christopher Murray","F","",[]],["SD01","C","Farzeen Bham","F","D",[]],["SD02","I","Mario Mattera","","R",[]],["SD02","C","Jonathan Estreich","F","D",[]],["SD03","I","Dean Murray","F","R",[]],["SD03","C","Antonio Vargas Ayala","F","",[]],["SD04","I","Monica Martinez","F","D",[["20","32BJ SEIU"]]],["SD04","C","Brianne Wakefield","F","R",[]],["SD05","I","Steven Rhoads","F","R",[]],["SD05","C","William Kimbark","F","",[]],["SD06","I","Siela Bynoe","F","D",[["20","32BJ SEIU"]]],["SD06","C","Matthew John Capp","F","",[]],["SD07","I","Jack Martins","F","R",[]],["SD07","C","Rory Lancman","F","D",[]],["SD08","O","Jarett Gandolfo","F","R",[["17","Suffolk County Republican Party"]]],["SD08","O","Joshua Taveras","F","D",[]],["SD09","I","Patricia Canzoneri-Fitzpatrick","F","R",[]],["SD09","C","Lisa M. Vider","F","D",[]],["SD10","I","James Sanders Jr.","","D",[["20","32BJ SEIU"]]],["SD11","I","Toby Ann Stavisky","F","D",[["20","32BJ SEIU"]]],["SD11","C","Adam Muhammad Azam","F","D",[]],["SD11","C","Andrew R. Engel","F","D",[["16","Eastern Queens Greenway"],["16","New York Progressive Action Network"]]],["SD12","O","Aber Kawas","F","D",[["12","Alexa Avil\u00e9s (NYC Council District 38)"],["12","Tiffany Cab\u00e1n (NYC Council District 22)"],["11","Diana Moreno (NYS Assembly District 36)"],["11","Emily Gallagher (NYS Assembly District 50)"],["2","DSA (NYC)"],["16","CUFFH Action"],["16","DRUM Beats"],["16","Jewish Voices for Peace Action"],["16","Met Council Action"],["16","Muslim Democratic Club of New York"],["16","Progressive Voters Network"]]],["SD12","O","Sheryl Ann Fetik","F","D",[]],["SD12","O","Steven Raga","F","D",[["12","Harvey Epstein (NYC Council District 2)"],["3","Jimmy Van Bramer (Formerly NYC Council District 26)"],["11","Catalina Cruz (NYS Assembly District 39)"],["11","Manny De Los Santos (NYS Assembly District 72)"],["11","Tony Simone (NYS Assembly District 75)"],["16","People for Bernie"],["20","Hotel and Gaming Trades Council"],["20","32BJ SEIU"],["10","Philippine Daily Mirror"]]],["SD13","I","Jessica Ramos","F","D",[["20","Heat and Frost Insulators Local 12"],["20","New York State Building Trades Council"],["20","Uniformed Firefighters Association \u2014 FDNY"]]],["SD13","C","Hiram Monserrate","F","D",[]],["SD13","C","Jessica Gonz\u00e1lez-Rojas","F","D",[["12","Alexa Avil\u00e9s (NYC Council District 38)"],["12","Linda Lee (NYC Council District 23)"],["12","Shahana Hanif (NYC Council District 39)"],["12","Shekar Krishnan (NYC Council District 25)"],["12","Tiffany Cab\u00e1n (NYC Council District 22)"],["3","Christine Quinn (Formerly NYC Council Speaker and District 3)"],["3","Danny Dromm (Formerly NYC Council District 25)"],["13","Jumaane Williams (NYC Public Advocate)"],["13","Donovan Richards (Queens Borough President)"],["11","Catalina Cruz (NYS Assembly District 39)"],["11","Claire Valdez (NYS Assembly District 37)"],["11","Gustavo Rivera (NYS Senate District 33)"],["11","Jabari Brisport (NYS Senate District 25)"],["11","Larinda Hooks (NYS Assembly District 35)"],["11","Steven Raga (NYS Assembly District 30)"],["7","Jeffrion Aubry (Former NYS Assembly District 35)"],["15","AOC (NY Congressional District 14)"],["15","Nydia Velazquez (NY Congressional District 7)"],["19","Working Families Party"],["16","Citizen Action New York"],["16","DRUM Beats"],["16","Jews For Racial and Economic Justice (JFREJ)"],["16","Make the Road Action"],["16","Met Council Action"],["16","Muslim Democratic Club of New York"],["16","National Small Business Chamber of Commerce"],["16","New York Communities for Change"],["16","Planned Parenthood Action Fund"],["16","Reproductive Freedom for All"],["16","Sunrise NYC"],["16","Vote Mama"],["20","Hotel and Gaming Trades Council"],["20","Teamsters Joint Council 16"],["20","Transport Workers Union Local 100"],["20","Unite Here! Local 100"],["20","1199 SEIU"],["20","32BJ SEIU"],["14","Bernie Sanders (US Senior Senator Vermont)"],["0","Brad Lander (2026 Candidate for NY Congressional District 10)"],["0","Zephyr Teachout (Former 2021 Candidate NYS Attorney General)"],["10","El Diario Nueva York"]]],["SD14","I","Leroy G. Comrie, Jr.","F","D",[["20","32BJ SEIU"]]],["SD15","I","Joseph Addabbo Jr.","F","D",[["20","32BJ SEIU"]]],["SD15","C","Albert Baldeo","F","",[]],["SD15","C","Danniel Sun Maio","F","",[]],["SD16","I","John Liu","F","D",[["20","32BJ SEIU"]]],["SD16","C","Philip Shaw Chuan Wang","F","",[]],["SD17","I","Steve Chan","F","R",[]],["SD17","C","Larry  He","F","D",[["12","Susan Zhuang (NYC Council District 43)"],["11","William Colton (NYS Assembly District 47)"]]],["SD18","I","Julia Salazar","F","D",[["16","Citizen Action New York"],["16","Progressive Voters Network"],["20","32BJ SEIU"]]],["SD19","I","Roxanne Persaud","","D",[["20","32BJ SEIU"]]],["SD19","C","Jamell Paris Lighty","F","",[]],["SD20","I","Zellnor Myrie","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["SD21","I","Kevin Parker","","D",[["20","32BJ SEIU"]]],["SD21","C","Ronald Seifert","F","",[]],["SD22","I","Sam Sutton","F","D",[]],["SD22","C","Bernard Vaiselberg","F","R",[]],["SD22","C","Carl Caller","F","R",[]],["SD22","C","Harold Tischler","F","",[]],["SD23","I","Jessica Scarcella-Spanton","F","D",[["1","Richmond County Democratic Party"],["16","Progressive Voters Network"],["20","32BJ SEIU"]]],["SD23","C","Omar Mohamad","F","D",[["6","Jamaal Bowman"]]],["SD23","C","Ruslan Shamal","F","",[]],["SD24","I","Andrew Lanza","F","R",[]],["SD24","C","Alexis Rodriguez","F","D",[["1","Richmond County Democratic Party"]]],["SD25","I","Jabari Brisport","F","D",[["16","Citizen Action New York"],["16","New York Communities for Change"],["16","Progressive Voters Network"],["20","32BJ SEIU"]]],["SD25","C","Marlon Rice","F","D",[]],["SD26","I","Andrew Gounardes","F","D",[["1","Bay Ridge Democrats"],["20","32BJ SEIU"]]],["SD26","C","Tom A. Stanten","F","",[]],["SD27","O","Anthony Garcia","F","",[]],["SD27","O","Grace Lee","F","D",[["12","Gale Brewer  (NYC Council District 6)"],["13","Brad Hoylman-Sigal (Manhattan Borough President)"],["11","Brian Kavanagh (NYS Senate District 27)"],["11","Charles Fall (NYS Assembly District 61)"],["11","Deborah Glick (NYS Assembly District 66)"],["11","Erik Bottcher (NYS Senate District 47)"],["11","Keith Powers (NYS Assembly District 74)"],["11","Linda Rosenthal (NYS Assembly District 67)"],["11","Liz Krueger (NYS Senate District 28)"],["11","Tony Simone (NYS Assembly District 75)"],["1","Coalition for a District Alternative"],["1","Downtown Independent Democrats"],["1","Grand Street Dems"],["1","Three Bridges Democratic Club"],["1","United Democratic Organization"],["1","Village Independent Democrats"],["16","Citizen Action New York"],["20","Hotel and Gaming Trades Council"],["0","Mariama James (2026 Candidate for NYS Assembly District 65)"]]],["SD27","O","Jason C. Murillo","","R",[["19","New York State Conservative Party"]]],["SD27","O","Sommer Omar","F","",[]],["SD27","O","Suraj Patel","F","",[]],["SD27","O","Vincent K Jenkins","F","",[["0","Cynthia Nixon (2018 Candidate for NY Governor)"]]],["SD27","O","Yuh-Line Niou","F","D",[["12","Shahana Hanif (NYC Council District 39)"],["11","Ron Kim (NYS Assembly District 40)"],["6","Jamaal Bowman"],["1","504 Democratic Club"],["19","Working Families Party"],["16","New York Communities for Change"],["16","New York Progressive Action Network"],["16","Sunrise NYC"],["16","TREEage"],["0","Brad Lander (2026 Candidate for NY Congressional District 10)"]]],["SD28","I","Liz Krueger","","D",[["20","32BJ SEIU"]]],["SD28","C","Alina Bonsell","F","R",[]],["SD29","I","Jos\u00e9 M. Serrano","F","D",[["20","32BJ SEIU"]]],["SD29","C","Nicholas Reyes","F","",[]],["SD30","I","Cordell Cleare","F","D",[["1","Three Parks Independent Democrats"],["20","32BJ SEIU"]]],["SD31","I","Robert Jackson","F","D",[["19","Working Families Party"],["16","Citizen Action New York"],["20","32BJ SEIU"]]],["SD32","I","Luis R. Sepulveda","","D",[["20","32BJ SEIU"]]],["SD33","I","Gustavo Rivera","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["SD34","I","Nathalia Fernandez","","D",[["20","32BJ SEIU"]]],["SD35","I","Andrea Stewart-Cousins","F","D",[["20","32BJ SEIU"]]],["SD35","C","Anthony J. Merante","F","R",[]],["SD35","C","Khristen M. Kerr","F","R",[]],["SD36","I","Jamaal Bailey","","D",[["20","32BJ SEIU"]]],["SD37","I","Shelley Mayer","F","D",[["20","32BJ SEIU"]]],["SD38","I","Bill Weber","F","R",[]],["SD38","C","Joseph Rand","F","D",[["19","Working Families Party"],["16","Citizen Action New York"]]],["SD39","I","Robert Rolison","F","R",[]],["SD39","C","Emma Natalie Arnoff","D","D",[]],["SD40","I","Peter Harckham","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"],["0","Cait Conley (2026 Candidate for NY Congressional District 17)"]]],["SD40","C","Sergio J Esposito","F","",[]],["SD40","C","Gina Arena","F","R",[]],["SD41","I","Michelle Hinchey","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["SD41","C","Patrick Sheehan","F","R",[]],["SD42","I","James Skoufis","F","D",[["20","32BJ SEIU"]]],["SD43","I","Jake Ashby","F","R",[]],["SD44","I","Jim Tedisco","F","R",[]],["SD44","C","Patrick F. Nelson","F","D",[]],["SD44","C","Sarah Rogerson","F","",[]],["SD45","I","Dan Stec","F","R",[]],["SD45","C","Melissa Teresa Seale","F","D",[]],["SD46","I","Patricia Fahy","F","D",[["1","Montgomery County Democratic Party"],["20","32BJ SEIU"]]],["SD46","C","Martha McHugh","F","",[]],["SD47","C","Charlotte Friedman","F","R",[]],["SD47","C","Darling James Miramey","F","",[]],["SD47","I","Erik Bottcher","F","D",[["12","Gale Brewer  (NYC Council District 6)"],["12","Julie Menin (NYC Council Speaker and District 5)"],["12","Shaun Abreu (NYC Council District 7)"],["13","Brad Hoylman-Sigal (Manhattan Borough President)"],["13","Mark Levine (NYC Comptroller)"],["11","Deborah Glick (NYS Assembly District 66)"],["11","Micah Lasher (NYS Assembly District 69)"],["18","Tom DiNapoli (NYS Comptroller)"],["15","Jerry Nadler (NY Congressional District 12)"],["15","Ritchie Torres (NY Congressional District 15)"],["1","Manhattan Democratic Party"],["1","Three Parks Independent Democrats"],["19","Working Families Party"],["16","CUFFH Action"],["16","Equality PAC"],["16","League of Conservation Voters (New York)"],["16","LGBTQ Victory Fund"],["20","NYSUT"],["20","PSC/CUNY"],["20","UFT"],["20","32BJ SEIU"],["14","Mark Takano (CA Congressional District 41)"],["5","Evan Low (Former CA Assembly Member District 26)"]]],["SD48","I","Rachel May","F","D",[["20","32BJ SEIU"]]],["SD48","C","Richard McCarron Jr.","F","",[]],["SD49","I","Mark Walczyk","F","R",[]],["SD49","C","Cassie Robbins-Forbus","F","",[]],["SD50","I","Chris Ryan","F","D",[["16","Citizen Action New York"]]],["SD50","C","James Edward Corl III","F","R",[]],["SD51","O","Chris Hewitt","F","",[]],["SD51","O","Christopher Tague","F","R",[]],["SD51","O","Michele L Frazier","F","",[]],["SD51","O","Terry L. Blosser-Bernardo","F","",[]],["SD52","I","Lea Webb","F","D",[["19","Working Families Party"],["16","Citizen Action New York"],["20","32BJ SEIU"]]],["SD52","C","Michael Stephen Bolles","F","",[]],["SD53","I","Joseph Griffo","F","R",[["17","Oneida County Republican Party"]]],["SD53","C","Mandi E Drake","F","D",[]],["SD54","I","Pam Helming","F","R",[]],["SD54","C","Christopher Scott Comegys","F","",[]],["SD54","C","Michael P Mills","F","",[]],["SD55","I","Samra Brouk","F","D",[["1","Webster Democratic Committee"],["16","Citizen Action New York"],["20","32BJ SEIU"]]],["SD55","C","Christopher Brown Jr","F","",[]],["SD56","I","Jeremy Cooney","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["SD56","C","Orlando J. Rivera","F","",[]],["SD57","I","George Borrello","F","R",[]],["SD57","C","Victoria A Guite-Williams","F","",[]],["SD58","I","Tom O'Mara","F","R",[]],["SD59","I","Kristen Gonzalez","F","D",[["1","Eleanor Roosevelt Independent Democrats"],["1","Samuel Tilden Democratic Club"],["16","Citizen Action New York"],["16","Progressive Voters Network"],["20","32BJ SEIU"]]],["SD59","C","Gus Lambropoulos","F","",[]],["SD60","I","Patrick Gallivan","F","R",[["17","Erie County Republican Committee"]]],["SD61","I","Jeremy Zellner","F","D",[["11","Bill Conrad (NYS Assembly District 140)"],["11","Karen McMahon (NYS Assembly District 146)"],["11","Patrick Burke (NYS Assembly District 142)"],["9","Angela Marinucci (Amherst, NY Council Member)"],["9","Bill Strassburg (Tonawanda City, NY Mayor)"],["9","Byran Bollman (Buffalo, NY Common Council Lovejoy District)"],["9","Carl Szarek (Tonawanda, NY Council Member)"],["9","Christopher Fisher (Tonawanda City, NY Council Ward 2)"],["9","Christopher Scanlon (Buffalo, NY Common Council District South)"],["9","Fran Spoth (Amherst, NY Town Clerk)"],["9","Gina Santa Maria (Tonawanda, NY Council Member)"],["9","Jack Kavanaugh (Amherst, NY Council Member)"],["9","James Shiesley (Tonawanda City, NY Council Ward 1)"],["9","Jason Voisinet (Tonawanda City, NY Council Ward 4)"],["9","Jeanne Vinal (Erie County Legislative District 5)"],["9","Jill O'Malley (Tonawanda, NY Council Member)"],["9","Joe Emminger (Tonawanda, NY Supervisor)"],["9","Joe Golombek (Buffalo, NY Common Council District North)"],["9","Joel Feroleto (Buffalo, NY Common Council District Delaware)"],["9","John Bargnesi (Erie County Legislative District 4)"],["9","John Davis (Amherst, NY Council Member)"],["9","John Gilmour (Erie County District 9)"],["9","Kevin Hardwick"],["9","Lawrence Dupre"],["9","Leah Halton-Pope"],["9","Marguerite Greco (Tonawanda, NY Town Clerk)"],["9","Mark Poloncarz (Erie County Executive)"],["9","Michael Kooshoian"],["9","Mike Szukala (Amherst, NY Council Member)"],["9","Mitch Nowakowski"],["9","Rhonda Diehl"],["9","Shawn Lavin (Amherst, NY Town Supervisor)"],["9","Steve Floss (Amherst, NY Highway Superintendent)"],["9","Susan Gregg"],["9","Taisha St. Jean Tard"],["9","Tim Meyers"],["9","Timothy Hennessey (Tonawanda, NY Council Member)"],["9","Zeneta Everhart"],["18","Kathy Hochul (NYS Governor)"],["15","Tim Kennedy (NY Congressional District 26)"],["1","New York State Young Democrats"],["16","Planned Parenthood Action Fund"],["20","ATU Local 1342"],["20","Buffalo Professional Firefighters Association"],["20","Brotherhood of Locomotive Engineers and Trainmen"],["20","IAFF Local 859"],["20","IBEW Local 2104"],["20","National Association of Letter Carriers Branch 3"]]],["SD61","C","Dan Gagliardo","D","R",[["7","Alfred Coppola (Former NYS Senate District 57)"]]],["SD61","C","Jonathan D. Rivera","F","D",[["19","Working Families Party"]]],["SD62","I","Rob Ortt","","R",[]],["SD62","C","Thomas Edward Arida","F","",[]],["SD63","I","April Baskin","F","D",[["16","Citizen Action New York"],["20","32BJ SEIU"]]],["SD63","C","Geoffrey M. Szymanski","F","R",[["17","Erie County Republican Committee"]]]];
+var SENATE_CANDIDATES = SENATE_CANDIDATES_RAW.map(function(r){
+  return {position:r[0],positionStatus:ASM_STATUS[r[1]]||r[1],candidate:r[2],
+    campaignStatus:ASM_CAMP[r[3]]||r[3],party:ASM_PARTY[r[4]]||r[4],
+    endorsements:r[5].map(function(e){return {category:CAND_CATS[e[0]],name:e[1]};})};
+});
+
+var SENATE_GEOJSON = (function(){
+  var S=10000;
+  function dr(enc){
+    var pts=[],lng=enc[0][0]/S,lat=enc[0][1]/S;pts.push([lng,lat]);
+    for(var i=1;i<enc.length;i++){lng+=enc[i][0]/S;lat+=enc[i][1]/S;pts.push([Math.round(lng*S)/S,Math.round(lat*S)/S]);}
+    return pts;
+  }
+  var features=[];
+  for(var d=1;d<=63;d++){
+    var polys=SENATE_GEO_DELTA[String(d)];
+    if(!polys)continue;
+    var coords=polys.map(function(poly){return poly.map(dr);});
+    var geom=coords.length===1?{type:'Polygon',coordinates:coords[0]}:{type:'MultiPolygon',coordinates:coords};
+    features.push({type:'Feature',geometry:geom,properties:{D:d}});
+  }
+  return {type:'FeatureCollection',features:features};
+})();
+
+var senateLayer = null;
+var senateVisible = false;
+var selectedSenateLayer = null;
+var currentSenateDistrict = null;
+
+
+/* ── Senate overlay functions ── */
+function initSenateOverlay() {
+  var btn = document.getElementById('senateToggle');
+  btn.addEventListener('click', function() {
+    senateVisible = !senateVisible;
+    btn.classList.toggle('active', senateVisible);
+    if (senateVisible) {
+      if (!senateLayer) {
+        senateLayer = L.geoJSON(SENATE_GEOJSON, {
+          style: function() {
+            return {color:'#444',fillColor:'#444',fillOpacity:0.06,weight:0.8,opacity:0.5,dashArray:'5,4'};
+          },
+          onEachFeature: function(feature, layer) {
+            var num = parseInt(feature.properties.D, 10);
+            layer.bindTooltip('Senate District ' + num, {
+              sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
+            });
+            layer.on('mouseover', function() {
+              if (!currentEndorser) layer.closeTooltip();
+            });
+            layer.on('click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              // Deselect if clicking already-selected district
+              if (currentSenateDistrict === feature.properties.D) {
+                clearSenateSelection();
+                return;
+              }
+              var clickLL = e.latlng, lng = clickLL.lng, lat = clickLL.lat;
+              var foundCong = null;
+              function pointInRing(ring,px,py){
+                var inside=false;
+                for(var i=0,j=ring.length-1;i<ring.length;j=i++){
+                  var xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+                  if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))inside=!inside;
+                }
+                return inside;
+              }
+              function pointInGeom(geom,px,py){
+                if(geom.type==='Polygon')return pointInRing(geom.coordinates[0],px,py);
+                if(geom.type==='MultiPolygon')return geom.coordinates.some(function(p){return pointInRing(p[0],px,py);});
+                return false;
+              }
+              geoLayer.eachLayer(function(cl){
+                if(foundCong)return;
+                if(pointInGeom(cl.feature.geometry,lng,lat))foundCong=cl;
+              });
+              if (foundCong) {
+                var num=parseInt(foundCong.feature.properties.District,10);
+                var pos='NY'+(num<10?'0':'')+num;
+                if(currentPos!==pos) onDistrictClick(num,pos,clickLL,true);
+              }
+              onSenateClick(feature.properties.D, layer);
+            });
+          }
+        });
+        senateLayer.addTo(mapObj);
+      } else {
+        senateLayer.addTo(mapObj);
+      }
+      updateLayerPriority();
+    } else {
+      if (senateLayer) mapObj.removeLayer(senateLayer);
+      clearSenateSelection();
+      updateLayerPriority();
+    }
+  });
+  document.getElementById('senate-crumb-back').addEventListener('click', clearSenateSelection);
+}
+
+function onSenateClick(districtNum, layer) {
+  mobileExpandPanel();
+  clearSenateSelection(true);
+  currentSenateDistrict = districtNum;
+  selectedSenateLayer = layer;
+  layer.setStyle({color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.55,weight:2.5,opacity:1,dashArray:''});
+  enforceLayerOrder();
+
+  var pos = 'SD'+(districtNum<10?'0':'')+districtNum;
+
+  var cands = SENATE_CANDIDATES.filter(function(c){return c.position===pos;});
+  var titleEl = document.getElementById('panel-title');
+  titleEl.innerHTML='';
+  titleEl.appendChild(document.createTextNode('Senate District '+districtNum));
+  var isOpen = cands.some(function(c){return c.positionStatus==='Open Seat';});
+  var senIncumbent=cands.find(function(c){return c.positionStatus==='Incumbent';});
+  var senSubEl=document.getElementById('panel-subtitle');
+  senSubEl.innerHTML='';
+  if (isOpen) {
+    var ob=document.createElement('span');
+    ob.className='badge badge-open';ob.textContent='Open Seat';senSubEl.appendChild(ob);
+  } else {
+    senSubEl.textContent=senIncumbent?senIncumbent.candidate:'';
+  }
+  var hasOther=cands.some(function(c){return c.party!=="Democratic Party"&&c.party!=="Republican Party";});
+  document.querySelector(".filter-chip[data-party=\"other\"]").style.display=hasOther?"":"none";
+  currentParty='ALL';
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.toggle('active',c.dataset.party==='ALL');});
+  renderSenatePanel();
+  updateClearAllBtn();
+}
+
+function renderSenatePanel() {
+  var districtNum = currentSenateDistrict;
+  var pos = 'SD'+(districtNum<10?'0':'')+districtNum;
+  var cands = SENATE_CANDIDATES.filter(function(c){return c.position===pos;});
+  var filtered = cands.filter(function(c){
+    if(currentParty==='ALL') return true;
+    if(currentParty==='other') return c.party!=='Democratic Party'&&c.party!=='Republican Party';
+    return c.party===currentParty;
+  });
+  updateFilterCount(filtered);
+  var list=document.getElementById('candidates-list'); list.innerHTML='';
+  if(!filtered.length){
+    var nd=document.createElement('div');nd.className='no-results';
+    nd.textContent='No candidates match current filters.';list.appendChild(nd);return;
+  }
+  var wrapper=document.createElement('div');wrapper.className='cand-columns';
+  filtered.forEach(function(c){wrapper.appendChild(makeCandCol(c,false));});
+  list.appendChild(wrapper);
+}
+
+function clearSenateSelection(keepPos) {
+  currentSenateDistrict = null;
+  if (selectedSenateLayer) {
+    if (senateLayer) senateLayer.resetStyle(selectedSenateLayer);
+    selectedSenateLayer = null;
+  }
+  document.getElementById('senate-crumb').style.display='none';
+  updateClearAllBtn();
+  updateLayerPriority();
+}
+
+function updateClearAllBtn() {
+  var congSel   = !!currentPos;
+  var asmSel    = !!currentAssemblyDistrict;
+  var senateSel = !!currentSenateDistrict;
+  var selCount  = (congSel ? 1 : 0) + (asmSel ? 1 : 0) + (senateSel ? 1 : 0);
+  // Show when districts from more than one layer type are selected,
+  // or when an asm/senate sub-district is drilled into (always show to let user reset)
+  var show = selCount > 1 || asmSel || senateSel;
+  document.getElementById('clear-all-btn').style.display = show ? '' : 'none';
+}
+
+function clearAllSelections() {
+  // Clear congressional highlight
+  if (selectedCongLayer) {
+    var d = parseInt(selectedCongLayer.feature.properties.District, 10);
+    var c = CONG_COLORS[d - 1] || '#1a6b3a';
+    selectedCongLayer.setStyle({fillColor: c, fillOpacity: 0.12, weight: 1.2, color: c, opacity: 0.8});
+    selectedCongLayer = null;
+  }
+  currentPos = null;
+  // Clear assembly
+  clearAssemblySelection();
+  // Clear senate
+  clearSenateSelection();
+  // Clear endorser
+  currentEndorser = null;
+  endorserBubblePos = null;
+  clearEndorserOverlay();
+  document.getElementById('endorser-banner').classList.remove('visible');
+  // Reset party filter
+  currentParty = 'ALL';
+  document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.toggle('active', c.dataset.party === 'ALL'); });
+  document.querySelector('.filter-chip[data-party="other"]').style.display = 'none';
+  document.getElementById('filter-bar').classList.remove('visible');
+  // Reset panel
+  document.getElementById('panel-title').textContent = 'Select a District';
+  document.getElementById('panel-subtitle').textContent = 'Click any district on the map';
+  document.getElementById('candidates-list').innerHTML = '<div class="no-results">Click a district on the map to explore candidates.</div>';
+  document.getElementById('clear-all-btn').style.display = 'none';
+}
+
+
+/* ── Shore base layer ── */
+var SHORE_GEOJSON = (function(){
+  var S=10000;
+  function dr(enc){
+    var pts=[],lng=enc[0][0]/S,lat=enc[0][1]/S;pts.push([lng,lat]);
+    for(var i=1;i<enc.length;i++){lng+=enc[i][0]/S;lat+=enc[i][1]/S;pts.push([Math.round(lng*S)/S,Math.round(lat*S)/S]);}
+    return pts;
+  }
+  var coords=SHORE_DELTA.map(function(poly){return poly.map(dr);});
+  return {type:'Feature',geometry:{type:'MultiPolygon',coordinates:coords},properties:{}};
+})();
+
+var shoreLayer = null;
+var congVisible = false;
+var congLayer = null;
+
+/* ── Map Search ── */
+function positionSearchBar() {
+  var wrap = document.getElementById('map-search-wrap');
+  if (!wrap) return;
+  if (endorserBubbleEl) {
+    var cardH = endorserBubbleEl.offsetHeight;
+    wrap.style.top = (12 + cardH + 8) + 'px';
+  } else {
+    wrap.style.top = '12px';
+  }
+}
+
+function buildSearchIndex() {
+  var results = [];
+
+  // Congressional districts
+  for (var i = 1; i <= 26; i++) {
+    var pos = 'NY' + (i < 10 ? '0' : '') + i;
+    results.push({type:'district', label:'Congressional District ' + i, pos: pos, distType:'cong', distNum: i});
+  }
+
+  // Assembly districts
+  ASSEMBLY_CANDIDATES.forEach(function(c) {
+    var num = parseInt(c.position.replace(/^AD0*/i,''), 10);
+    var key = 'asm-' + num;
+    if (!results.find(function(r){return r.key===key;})) {
+      results.push({type:'district', key:key, label:'Assembly District ' + num, pos:c.position, distType:'asm', distNum:num});
+    }
+  });
+
+  // Senate districts
+  SENATE_CANDIDATES.forEach(function(c) {
+    var num = parseInt(c.position.replace(/^SD0*/i,''), 10);
+    var key = 'sen-' + num;
+    if (!results.find(function(r){return r.key===key;})) {
+      results.push({type:'district', key:key, label:'Senate District ' + num, pos:c.position, distType:'sen', distNum:num});
+    }
+  });
+
+  // Candidates — all pools
+  var allPools = [
+    {cands: CANDIDATES, raceFn: function(c){ var n=parseInt(c.position.replace('NY',''),10); return 'Congressional District '+n; }},
+    {cands: ASSEMBLY_CANDIDATES, raceFn: function(c){ return 'Assembly District '+parseInt(c.position.replace(/^AD0*/i,''),10); }},
+    {cands: SENATE_CANDIDATES, raceFn: function(c){ return 'Senate District '+parseInt(c.position.replace(/^SD0*/i,''),10); }},
+    {cands: GOV_CANDIDATES, raceFn: function(){ return 'Governor'; }},
+    {cands: AG_CANDIDATES, raceFn: function(){ return 'Attorney General'; }},
+    {cands: COMP_CANDIDATES, raceFn: function(){ return 'Comptroller'; }},
+    {cands: CD03_CANDIDATES, raceFn: function(){ return 'NYC Council District 3'; }},
+  ];
+  allPools.forEach(function(pool) {
+    pool.cands.forEach(function(c) {
+      results.push({type:'candidate', label:c.candidate, sub:pool.raceFn(c), candidate:c});
+    });
+  });
+
+  // Endorsers — unique names across all candidates
+  var endorserSeen = {};
+  allPools.forEach(function(pool) {
+    pool.cands.forEach(function(c) {
+      c.endorsements.forEach(function(e) {
+        if (e.name && !endorserSeen[e.name]) {
+          endorserSeen[e.name] = true;
+          results.push({type:'endorser', label:e.name});
+        }
+      });
+    });
+  });
+
+  return results;
+}
+
+function initMapSearch() {
+  var input = document.getElementById('map-search-input');
+  var resultsEl = document.getElementById('map-search-results');
+  var clearBtn = document.getElementById('map-search-clear');
+  var iconBtn = document.getElementById('map-search-icon-btn');
+  var wrap = document.getElementById('map-search-wrap');
+  var searchIndex = null;
+
+  // On mobile: show icon button, hide input initially
+  function isMobile() { return window.innerWidth <= 768; }
+
+  function setMobileMode() {
+    if (isMobile()) {
+      iconBtn.style.display = 'flex';
+    } else {
+      iconBtn.style.display = 'none';
+      wrap.classList.remove('search-expanded');
+    }
+  }
+  setMobileMode();
+  window.addEventListener('resize', setMobileMode);
+
+  // Icon button expands search on mobile
+  iconBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    wrap.classList.add('search-expanded');
+    setTimeout(function() { input.focus(); }, 50);
+  });
+
+  // Collapse back to icon on mobile when clicking outside
+  document.addEventListener('click', function(e) {
+    if (isMobile() && !wrap.contains(e.target)) {
+      wrap.classList.remove('search-expanded');
+      closeResults();
+    }
+  });
+
+  function getIndex() {
+    if (!searchIndex) searchIndex = buildSearchIndex();
+    return searchIndex;
+  }
+
+  function closeResults() {
+    resultsEl.classList.remove('visible');
+    resultsEl.innerHTML = '';
+  }
+
+  function clearSearch() {
+    input.value = '';
+    clearBtn.classList.remove('visible');
+    closeResults();
+    if (isMobile()) wrap.classList.remove('search-expanded');
+  }
+
+  clearBtn.addEventListener('click', clearSearch);
+
+  input.addEventListener('input', function() {
+    var q = input.value.trim().toLowerCase();
+    clearBtn.classList.toggle('visible', q.length > 0);
+    if (q.length < 2) { closeResults(); return; }
+
+    var idx = getIndex();
+    var districts = [], candidates = [], endorsers = [];
+    idx.forEach(function(r) {
+      if (r.label.toLowerCase().indexOf(q) === -1) return;
+      if (r.type === 'district') districts.push(r);
+      else if (r.type === 'candidate') candidates.push(r);
+      else if (r.type === 'endorser') endorsers.push(r);
+    });
+
+    // Limit results
+    districts = districts.slice(0,8);
+    candidates = candidates.slice(0,12);
+    endorsers = endorsers.slice(0,10);
+
+    if (!districts.length && !candidates.length && !endorsers.length) {
+      closeResults(); return;
+    }
+
+    resultsEl.innerHTML = '';
+
+    function makeGroup(label, items, clickFn) {
+      if (!items.length) return;
+      var grp = document.createElement('div');
+      grp.className = 'search-result-group';
+      grp.textContent = label;
+      resultsEl.appendChild(grp);
+      items.forEach(function(r) {
+        var item = document.createElement('div');
+        item.className = 'search-result-item';
+        item.innerHTML = r.label + (r.sub ? '<span class="result-sub">'+r.sub+'</span>' : '');
+        item.addEventListener('mousedown', function(e) {
+          e.preventDefault(); // prevent blur before click
+          clearSearch();
+          clickFn(r);
+        });
+        resultsEl.appendChild(item);
+      });
+    }
+
+    makeGroup('Districts', districts, function(r) { selectSearchDistrict(r); });
+    makeGroup('Candidates', candidates, function(r) { selectSearchCandidate(r); });
+    makeGroup('Endorsers', endorsers, function(r) { selectSearchEndorser(r); });
+
+    resultsEl.classList.add('visible');
+  });
+
+  input.addEventListener('blur', function() {
+    setTimeout(closeResults, 150);
+  });
+
+  // Stop map from receiving clicks through search
+  document.getElementById('map-search-wrap').addEventListener('click', function(e) { e.stopPropagation(); });
+}
+
+function flyToDistrict(bounds) {
+  var currentZoom = mapObj.getZoom();
+  var maxZoom = mapObj.getMaxZoom() || 14;
+  var targetZoom = Math.round((currentZoom + maxZoom) / 2);
+  mapObj.flyToBounds(bounds, {
+    maxZoom: targetZoom,
+    padding: [40, 40],
+    duration: 0.6
+  });
+}
+
+function selectSearchDistrict(r) {
+  if (r.distType === 'cong') {
+    // Ensure cong layer is visible, then trigger click
+    if (!congVisible) {
+      document.getElementById('congToggle').click();
+    }
+    geoLayer.eachLayer(function(l) {
+      if (parseInt(l.feature.properties.District, 10) === r.distNum) {
+        // Reset previous selection
+        if (selectedCongLayer && selectedCongLayer !== l) {
+          var pd = parseInt(selectedCongLayer.feature.properties.District, 10);
+          var pc = CONG_COLORS[pd-1]||'#1a6b3a';
+          selectedCongLayer.setStyle({fillColor:pc, fillOpacity:0.12, weight:1.2, color:pc, opacity:0.8});
+        }
+        selectedCongLayer = l;
+        var c = CONG_COLORS[r.distNum-1]||'#1a6b3a';
+        l.setStyle({fillColor:c, fillOpacity:0.65, weight:2.5, color:c, opacity:1});
+        l.bringToFront();
+        onDistrictClick(r.distNum, r.pos, l.getBounds().getCenter());
+        flyToDistrict(l.getBounds());
+      }
+    });
+  } else if (r.distType === 'asm') {
+    if (!assemblyVisible) document.getElementById('assemblyToggle').click();
+    assemblyLayer.eachLayer(function(l) {
+      var d = l.feature.properties.D;
+      if (parseInt(d,10) === r.distNum) {
+        onAssemblyClick(r.distNum, l);
+        flyToDistrict(l.getBounds());
+      }
+    });
+  } else if (r.distType === 'sen') {
+    if (!senateVisible) document.getElementById('senateToggle').click();
+    senateLayer.eachLayer(function(l) {
+      var d = l.feature.properties.D;
+      if (parseInt(d,10) === r.distNum) {
+        onSenateClick(r.distNum, l);
+        flyToDistrict(l.getBounds());
+      }
+    });
+  }
+}
+
+function selectSearchCandidate(r) {
+  var c = r.candidate;
+  var pos = c.position;
+
+  if (/^NY\d+$/.test(pos)) {
+    var num = parseInt(pos.replace('NY',''), 10);
+    selectSearchDistrict({distType:'cong', distNum:num, pos:pos});
+    // After panel renders, open this candidate's endorser list
+    setTimeout(function() {
+      var cols = document.querySelectorAll('.cand-col');
+      cols.forEach(function(col) {
+        var nameEl = col.querySelector('.cand-th-name');
+        if (nameEl && nameEl.textContent === c.candidate) {
+          var list = col.querySelector('.cand-endorser-list');
+          var toggle = col.querySelector('.cand-toggle');
+          var hdr = col.querySelector('.cand-col-header');
+          if (list && !list.classList.contains('open')) {
+            list.classList.add('open');
+            if (toggle) toggle.textContent = '▴';
+          }
+          col.scrollIntoView({behavior:'smooth', block:'nearest'});
+        }
+      });
+    }, 120);
+  } else if (/^AD\d+$/i.test(pos)) {
+    var num = parseInt(pos.replace(/^AD0*/i,''), 10);
+    selectSearchDistrict({distType:'asm', distNum:num, pos:pos});
+    setTimeout(function() { openCandidateInPanel(c.candidate); }, 200);
+  } else if (/^SD\d+$/i.test(pos)) {
+    var num = parseInt(pos.replace(/^SD0*/i,''), 10);
+    selectSearchDistrict({distType:'sen', distNum:num, pos:pos});
+    setTimeout(function() { openCandidateInPanel(c.candidate); }, 200);
+  } else {
+    // Statewide — just trigger endorser panel via currentPos trick
+    currentPos = pos;
+    renderPanel();
+    setTimeout(function() { openCandidateInPanel(c.candidate); }, 80);
+  }
+}
+
+function openCandidateInPanel(candidateName) {
+  var cols = document.querySelectorAll('.cand-col');
+  cols.forEach(function(col) {
+    var nameEl = col.querySelector('.cand-th-name');
+    if (nameEl && nameEl.textContent === candidateName) {
+      var list = col.querySelector('.cand-endorser-list');
+      var toggle = col.querySelector('.cand-toggle');
+      if (list && !list.classList.contains('open')) {
+        list.classList.add('open');
+        if (toggle) toggle.textContent = '▴';
+      }
+      col.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }
+  });
+}
+
+function selectSearchEndorser(r) {
+  var name = r.label;
+
+  // Determine which layers have endorsed candidates
+  var hasCong = CANDIDATES.some(function(c) {
+    return c.endorsements.some(function(e) { return e.name === name; });
+  });
+  var hasAsm = ASSEMBLY_CANDIDATES.some(function(c) {
+    return c.endorsements.some(function(e) { return e.name === name; });
+  });
+  var hasSen = SENATE_CANDIDATES.some(function(c) {
+    return c.endorsements.some(function(e) { return e.name === name; });
+  });
+
+  // Activate layers that have endorsed candidates (if not already on)
+  if (hasCong && !congVisible) document.getElementById('congToggle').click();
+  if (hasAsm && !assemblyVisible) document.getElementById('assemblyToggle').click();
+  if (hasSen && !senateVisible) document.getElementById('senateToggle').click();
+
+  currentEndorser = name;
+  document.getElementById('banner-text').textContent = 'Filtering by: ' + name;
+  document.getElementById('endorser-banner').classList.add('visible');
+  renderPanel();
+  // Search moves below card — triggered after card renders
+  setTimeout(positionSearchBar, 50);
+}
+
+</script>
+</body>
+</html>
