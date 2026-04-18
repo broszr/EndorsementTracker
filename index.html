@@ -898,8 +898,28 @@ function initMap() {
   setTimeout(scaleCityMarkers, 200);
 
   /* Congressional layer — toggleable */
+  function getCongStyle(feature, selected) {
+    var dist = parseInt(feature.properties.District, 10);
+    var pos = 'NY' + (dist < 10 ? '0' : '') + dist;
+    var isOpen = CANDIDATES.some(function(c) {
+      return c.position === pos && (c.positionStatus || '').toLowerCase().indexOf('open') > -1;
+    });
+    var party = feature.properties.Party;
+    var fillColor = isOpen ? '#F2A900'
+      : party === 'Democratic' ? '#00AEF3'
+      : party === 'Republican' ? '#E81B23'
+      : '#888888';
+    var borderColor = isOpen ? '#c47e00'
+      : party === 'Democratic' ? '#ffffff'
+      : party === 'Republican' ? '#000000'
+      : '#555555';
+    return selected
+      ? {fillColor: fillColor, fillOpacity: 0.55, weight: 2.5, color: borderColor, opacity: 1}
+      : {fillColor: fillColor, fillOpacity: 0.18, weight: 1.2, color: borderColor, opacity: 0.9};
+  }
+
   geoLayer = L.geoJSON(CONGRESSIONAL_GEOJSON, {
-    style: function(feature) { var c=CONG_COLORS[parseInt(feature.properties.District,10)-1]||'#1a6b3a'; return {color:c, fillColor:c, fillOpacity:0.12, weight:1.2, opacity:0.8}; },
+    style: function(feature) { return getCongStyle(feature, false); },
     onEachFeature: function(feature, fl) {
       var num = parseInt(feature.properties.District, 10);
       var pos = 'NY' + (num < 10 ? '0' : '') + num;
@@ -913,8 +933,7 @@ function initMap() {
         L.DomEvent.stopPropagation(e);
         // Clicking an already-selected district deselects it
         if (selectedCongLayer === fl) {
-          var dc = CONG_COLORS[num - 1] || '#1a6b3a';
-          fl.setStyle({fillColor: dc, fillOpacity: 0.12, weight: 1.2, color: dc, opacity: 0.8});
+          fl.setStyle(getCongStyle(feature, false));
           selectedCongLayer = null;
           currentPos = null;
           document.getElementById('panel-title').textContent = 'Select a District';
@@ -926,14 +945,11 @@ function initMap() {
         }
         // Reset previous selected district
         if (selectedCongLayer && selectedCongLayer !== fl) {
-          var prevDist = parseInt(selectedCongLayer.feature.properties.District, 10);
-          var prevC = CONG_COLORS[prevDist - 1] || '#1a6b3a';
-          selectedCongLayer.setStyle({fillColor: prevC, fillOpacity: 0.12, weight: 1.2, color: prevC, opacity: 0.8});
+          selectedCongLayer.setStyle(getCongStyle(selectedCongLayer.feature, false));
         }
         // Highlight new selection
         selectedCongLayer = fl;
-        var selC = CONG_COLORS[num - 1] || '#1a6b3a';
-        fl.setStyle({fillColor: selC, fillOpacity: 0.45, weight: 2.5, color: selC, opacity: 1});
+        fl.setStyle(getCongStyle(feature, true));
         fl.bringToFront();
         onDistrictClick(num, pos, e.latlng);
       });
@@ -946,9 +962,7 @@ function initMap() {
   mapObj.on('click', function() {
     // Deselect highlighted congressional district
     if (selectedCongLayer) {
-      var d = parseInt(selectedCongLayer.feature.properties.District, 10);
-      var c = CONG_COLORS[d - 1] || '#1a6b3a';
-      selectedCongLayer.setStyle({fillColor: c, fillOpacity: 0.12, weight: 1.2, color: c, opacity: 0.8});
+      selectedCongLayer.setStyle(getCongStyle(selectedCongLayer.feature, false));
       selectedCongLayer = null;
       currentPos = null;
       updateClearAllBtn();
@@ -1034,17 +1048,14 @@ function onDistrictClick(num, pos, latlng, skipAssemblyClear) {
   mobileExpandPanel();
   // If pos changed (called from asm/senate click), reset old cong highlight
   if (currentPos !== pos && selectedCongLayer) {
-    var d = parseInt(selectedCongLayer.feature.properties.District, 10);
-    var pc = CONG_COLORS[d - 1] || '#1a6b3a';
-    selectedCongLayer.setStyle({fillColor: pc, fillOpacity: 0.12, weight: 1.2, color: pc, opacity: 0.8});
+    selectedCongLayer.setStyle(getCongStyle(selectedCongLayer.feature, false));
     selectedCongLayer = null;
     // Find and highlight the new cong layer
     if (geoLayer) {
       geoLayer.eachLayer(function(l) {
         if (parseInt(l.feature.properties.District, 10) === num) {
           selectedCongLayer = l;
-          var nc = CONG_COLORS[num - 1] || '#1a6b3a';
-          l.setStyle({fillColor: nc, fillOpacity: 0.45, weight: 2.5, color: nc, opacity: 1});
+          l.setStyle(getCongStyle(l.feature, true));
           l.bringToFront();
         }
       });
@@ -1347,7 +1358,7 @@ function rebuildCentroidsAndRedraw() {
 function highlightEndorserDistricts(endorserName) {
 
   highlightedLayers.forEach(function(l) {
-    var c=CONG_COLORS[parseInt(l.feature.properties.District,10)-1]||'#1a6b3a'; l.setStyle({fillColor:c, fillOpacity:0.12, weight:1.2, color:c});
+    l.setStyle(getCongStyle(l.feature, false));
   });
   highlightedLayers = [];
   if (endorserAsmHighlight) { mapObj.removeLayer(endorserAsmHighlight); endorserAsmHighlight = null; }
@@ -1382,11 +1393,10 @@ function highlightEndorserDistricts(endorserName) {
       layer.bringToFront();
       highlightedLayers.push(layer);
     } else if (selectedCongLayer && layer === selectedCongLayer) {
-      var c = CONG_COLORS[dist - 1] || '#1a6b3a';
-      layer.setStyle({fillColor:c, fillOpacity:0.65, weight:2.5, color:c, opacity:1});
+      layer.setStyle(getCongStyle(layer.feature, true));
     } else {
-      var c = CONG_COLORS[dist - 1] || '#1a6b3a';
-      layer.setStyle({fillColor:c, fillOpacity:0.04, weight:0.8, color:c, opacity:0.4});
+      var baseStyle = getCongStyle(layer.feature, false);
+      layer.setStyle({fillColor: baseStyle.fillColor, fillOpacity: 0.04, weight: 0.8, color: baseStyle.color, opacity: 0.4});
     }
   });
 
@@ -1453,12 +1463,10 @@ function clearEndorserOverlay() {
   // but keep the currently selected district highlighted
   if (geoLayer) {
     geoLayer.eachLayer(function(l) {
-      var dist = parseInt(l.feature.properties.District, 10);
-      var c = CONG_COLORS[dist - 1] || '#1a6b3a';
       if (selectedCongLayer && l === selectedCongLayer) {
-        l.setStyle({fillColor:c, fillOpacity:0.65, weight:2.5, color:c, opacity:1});
+        l.setStyle(getCongStyle(l.feature, true));
       } else {
-        l.setStyle({fillColor:c, fillOpacity:0.12, weight:1.2, color:c, opacity:0.8});
+        l.setStyle(getCongStyle(l.feature, false));
       }
     });
   }
@@ -1964,9 +1972,7 @@ function updateClearAllBtn() {
 function clearAllSelections() {
   // Clear congressional highlight
   if (selectedCongLayer) {
-    var d = parseInt(selectedCongLayer.feature.properties.District, 10);
-    var c = CONG_COLORS[d - 1] || '#1a6b3a';
-    selectedCongLayer.setStyle({fillColor: c, fillOpacity: 0.12, weight: 1.2, color: c, opacity: 0.8});
+    selectedCongLayer.setStyle(getCongStyle(selectedCongLayer.feature, false));
     selectedCongLayer = null;
   }
   currentPos = null;
@@ -2215,13 +2221,10 @@ function selectSearchDistrict(r) {
       if (parseInt(l.feature.properties.District, 10) === r.distNum) {
         // Reset previous selection
         if (selectedCongLayer && selectedCongLayer !== l) {
-          var pd = parseInt(selectedCongLayer.feature.properties.District, 10);
-          var pc = CONG_COLORS[pd-1]||'#1a6b3a';
-          selectedCongLayer.setStyle({fillColor:pc, fillOpacity:0.12, weight:1.2, color:pc, opacity:0.8});
+          selectedCongLayer.setStyle(getCongStyle(selectedCongLayer.feature, false));
         }
         selectedCongLayer = l;
-        var c = CONG_COLORS[r.distNum-1]||'#1a6b3a';
-        l.setStyle({fillColor:c, fillOpacity:0.65, weight:2.5, color:c, opacity:1});
+        l.setStyle(getCongStyle(l.feature, true));
         l.bringToFront();
         onDistrictClick(r.distNum, r.pos, l.getBounds().getCenter());
         flyToDistrict(l.getBounds());
