@@ -2400,11 +2400,11 @@ function selectSearchEndorser(r) {
   /* Center in the map panel (right of sidebar). On desktop sidebar is 380px.
      We target the middle 25% of the map area. */
   top: 50%;
-  left: calc(380px + (100vw - 380px) * 0.5 - (100vw - 380px) * 0.125);
+  left: calc(380px / 2 + 50%);
   width: calc((100vw - 380px) * 0.25);
-  height: 50vmin;
+  height: calc((100vw - 380px) * 0.25);
   max-height: 70vh;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
   background: var(--cream, #ede8dc);
   border: 2px solid #ffffff;
   z-index: 3001;
