@@ -951,33 +951,7 @@ function initMap() {
     onEachFeature: function(feature, fl) {
       var num = parseInt(feature.properties.District, 10);
       var pos = 'NY' + (num < 10 ? '0' : '') + num;
-      fl.bindTooltip('Congressional District ' + num, {
-        sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
-      });
-      fl.on('mouseover', function(e) {
-        if (!currentEndorser) {
-          fl.closeTooltip();
-          return;
-        }
-        var pos = 'NY' + (num < 10 ? '0' : '') + num;
-        var isEndorsed = CANDIDATES.some(function(c) {
-          return c.position === pos && c.endorsements.some(function(e) { return e.name === currentEndorser; });
-        });
-        if (isEndorsed) {
-          fl.openTooltip(e.latlng);
-        } else {
-          fl.closeTooltip();
-        }
-      });
-      fl.on('mousemove', function(e) {
-        if (currentEndorser) {
-          var pos = 'NY' + (num < 10 ? '0' : '') + num;
-          var isEndorsed = CANDIDATES.some(function(c) {
-            return c.position === pos && c.endorsements.some(function(e) { return e.name === currentEndorser; });
-          });
-          if (isEndorsed) fl.openTooltip(e.latlng);
-        }
-      });
+      fl.on('mouseover', function() { fl.closeTooltip(); });
       fl.on('click', function(e) {
         L.DomEvent.stopPropagation(e);
         // Clicking an already-selected district deselects it
@@ -1457,11 +1431,7 @@ function highlightEndorserDistricts(endorserName) {
     });
     endorserAsmHighlight = L.geoJSON({type:'FeatureCollection', features: asmFeats}, {
       style: function() { return {color:'#000000',fillColor:'#b8860b',fillOpacity:0.4,weight:2.5,opacity:1,dashArray:''}; },
-      interactive: true,
-      onEachFeature: function(feature, layer) {
-        var num = parseInt(feature.properties.D, 10);
-        layer.bindTooltip('Assembly District ' + num, {sticky:true, className:'district-tooltip', direction:'top', offset:[0,-4]});
-      }
+      interactive: false
     }).addTo(mapObj);
     enforceLayerOrder();
   }
@@ -1477,11 +1447,7 @@ function highlightEndorserDistricts(endorserName) {
     if (window._endorserSenateHL) { mapObj.removeLayer(window._endorserSenateHL); }
     window._endorserSenateHL = L.geoJSON({type:'FeatureCollection',features:senateFeats},{
       style:function(){return {color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.32,weight:2.5,opacity:1,dashArray:'6,3'};},
-      interactive: true,
-      onEachFeature: function(feature, layer) {
-        var num = parseInt(feature.properties.D, 10);
-        layer.bindTooltip('Senate District ' + num, {sticky:true, className:'district-tooltip', direction:'top', offset:[0,-4]});
-      }
+      interactive: false
     }).addTo(mapObj);
     enforceLayerOrder();
   } else if (window._endorserSenateHL) {
@@ -1496,10 +1462,7 @@ function highlightEndorserDistricts(endorserName) {
   if (cd03Endorsed) {
     window._endorserCD03HL = L.geoJSON(CD03_GEOJSON, {
       style: function() { return {color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.55,weight:2.5,opacity:1,dashArray:''}; },
-      interactive: true,
-      onEachFeature: function(feature, layer) {
-        layer.bindTooltip('NYC Council District 3', {sticky:true, className:'district-tooltip', direction:'top', offset:[0,-4]});
-      }
+      interactive: false
     }).addTo(mapObj);
     enforceLayerOrder();
   }
@@ -2396,6 +2359,122 @@ function selectSearchEndorser(r) {
   // Search moves below card — triggered after card renders
   setTimeout(positionSearchBar, 50);
 }
+
+// ── Unified endorser hover tooltip ──────────────────────────────────────────
+(function() {
+  // Create a single floating tooltip div
+  var ttDiv = document.createElement('div');
+  ttDiv.id = 'endorser-hover-tt';
+  ttDiv.style.cssText = [
+    'position:fixed',
+    'display:none',
+    'pointer-events:none',
+    'z-index:2000',
+    'background:var(--ink,#0f0e0d)',
+    'color:var(--paper,#f5f0e8)',
+    'font-family:\'DM Mono\',monospace',
+    'font-size:0.62rem',
+    'letter-spacing:.06em',
+    'text-transform:uppercase',
+    'border:1px solid var(--gold,#b8860b)',
+    'border-radius:2px',
+    'padding:4px 8px',
+    'box-shadow:0 2px 8px rgba(0,0,0,.35)',
+    'white-space:nowrap',
+    'line-height:1.6'
+  ].join(';');
+  document.body.appendChild(ttDiv);
+
+  function pointInRing(ring, px, py) {
+    var inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+
+  function pointInFeature(feature, lng, lat) {
+    var geom = feature.geometry;
+    var coords = geom.coordinates;
+    if (geom.type === 'Polygon') {
+      if (!pointInRing(coords[0], lng, lat)) return false;
+      for (var h = 1; h < coords.length; h++) { if (pointInRing(coords[h], lng, lat)) return false; }
+      return true;
+    }
+    if (geom.type === 'MultiPolygon') {
+      for (var p = 0; p < coords.length; p++) {
+        if (!pointInRing(coords[p][0], lng, lat)) continue;
+        var inHole = false;
+        for (var h2 = 1; h2 < coords[p].length; h2++) { if (pointInRing(coords[p][h2], lng, lat)) { inHole = true; break; } }
+        if (!inHole) return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
+  document.getElementById('map').addEventListener('mousemove', function(e) {
+    if (!currentEndorser || !mapObj) { ttDiv.style.display = 'none'; return; }
+
+    // Convert pixel to latlng
+    var rect = document.getElementById('map').getBoundingClientRect();
+    var px = e.clientX - rect.left, py = e.clientY - rect.top;
+    var ll = mapObj.containerPointToLatLng([px, py]);
+    var lng = ll.lng, lat = ll.lat;
+
+    var labels = [];
+
+    // 1. Congressional — check highlightedLayers (directly styled on base layer)
+    if (geoLayer) {
+      highlightedLayers.forEach(function(l) {
+        if (pointInFeature(l.feature, lng, lat)) {
+          var dist = parseInt(l.feature.properties.District, 10);
+          labels.push('Congressional District ' + dist);
+        }
+      });
+    }
+
+    // 2. Senate
+    if (window._endorserSenateHL) {
+      window._endorserSenateHL.eachLayer(function(l) {
+        if (pointInFeature(l.feature, lng, lat)) {
+          labels.push('Senate District ' + parseInt(l.feature.properties.D, 10));
+        }
+      });
+    }
+
+    // 3. Assembly
+    if (endorserAsmHighlight) {
+      endorserAsmHighlight.eachLayer(function(l) {
+        if (pointInFeature(l.feature, lng, lat)) {
+          labels.push('Assembly District ' + parseInt(l.feature.properties.D, 10));
+        }
+      });
+    }
+
+    // 4. CD03
+    if (window._endorserCD03HL) {
+      if (pointInFeature(CD03_GEOJSON, lng, lat)) {
+        labels.push('NYC Council District 3');
+      }
+    }
+
+    if (!labels.length) {
+      ttDiv.style.display = 'none';
+      return;
+    }
+
+    ttDiv.innerHTML = labels.join('<br>');
+    ttDiv.style.display = 'block';
+    ttDiv.style.left = (e.clientX + 14) + 'px';
+    ttDiv.style.top  = (e.clientY - 10) + 'px';
+  });
+
+  document.getElementById('map').addEventListener('mouseleave', function() {
+    ttDiv.style.display = 'none';
+  });
+})();
 
 </script>
 
