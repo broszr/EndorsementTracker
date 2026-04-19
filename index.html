@@ -927,7 +927,14 @@ function initMap() {
         sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
       });
       fl.on('mouseover', function() {
-        if (!currentEndorser) fl.closeTooltip();
+        if (currentEndorser) {
+          // Only show tooltip if this district is endorsed (visible)
+          var pos = 'NY' + (num < 10 ? '0' : '') + num;
+          var isEndorsed = CANDIDATES.some(function(c) {
+            return c.position === pos && c.endorsements.some(function(e) { return e.name === currentEndorser; });
+          });
+          if (!isEndorsed) fl.closeTooltip();
+        }
       });
       fl.on('click', function(e) {
         L.DomEvent.stopPropagation(e);
@@ -1408,8 +1415,13 @@ function highlightEndorserDistricts(endorserName) {
     });
     endorserAsmHighlight = L.geoJSON({type:'FeatureCollection', features: asmFeats}, {
       style: function() { return {color:'#000000',fillColor:'#b8860b',fillOpacity:0.4,weight:2.5,opacity:1,dashArray:''}; },
-      interactive: false
+      interactive: true,
+      onEachFeature: function(feature, layer) {
+        var num = parseInt(feature.properties.D, 10);
+        layer.bindTooltip('Assembly District ' + num, {sticky:true, className:'district-tooltip', direction:'top', offset:[0,-4]});
+      }
     }).addTo(mapObj);
+    enforceLayerOrder();
   }
 
   var senatePosList = Object.keys(senatePositions);
@@ -1423,7 +1435,11 @@ function highlightEndorserDistricts(endorserName) {
     if (window._endorserSenateHL) { mapObj.removeLayer(window._endorserSenateHL); }
     window._endorserSenateHL = L.geoJSON({type:'FeatureCollection',features:senateFeats},{
       style:function(){return {color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.32,weight:2.5,opacity:1,dashArray:'6,3'};},
-      interactive: false
+      interactive: true,
+      onEachFeature: function(feature, layer) {
+        var num = parseInt(feature.properties.D, 10);
+        layer.bindTooltip('Senate District ' + num, {sticky:true, className:'district-tooltip', direction:'top', offset:[0,-4]});
+      }
     }).addTo(mapObj);
     enforceLayerOrder();
   } else if (window._endorserSenateHL) {
@@ -1438,7 +1454,10 @@ function highlightEndorserDistricts(endorserName) {
   if (cd03Endorsed) {
     window._endorserCD03HL = L.geoJSON(CD03_GEOJSON, {
       style: function() { return {color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.55,weight:2.5,opacity:1,dashArray:''}; },
-      interactive: false
+      interactive: true,
+      onEachFeature: function(feature, layer) {
+        layer.bindTooltip('NYC Council District 3', {sticky:true, className:'district-tooltip', direction:'top', offset:[0,-4]});
+      }
     }).addTo(mapObj);
     enforceLayerOrder();
   }
@@ -1663,6 +1682,10 @@ function enforceLayerOrder() {
   if (geoLayer && mapObj.hasLayer(geoLayer)) geoLayer.bringToFront();
   if (senateLayer && mapObj.hasLayer(senateLayer)) senateLayer.bringToFront();
   if (assemblyLayer && mapObj.hasLayer(assemblyLayer)) assemblyLayer.bringToFront();
+  // Endorser highlights sit above base layers; senate above assembly above congressional
+  if (endorserAsmHighlight && mapObj.hasLayer(endorserAsmHighlight)) endorserAsmHighlight.bringToFront();
+  if (window._endorserSenateHL && mapObj.hasLayer(window._endorserSenateHL)) window._endorserSenateHL.bringToFront();
+  if (window._endorserCD03HL && mapObj.hasLayer(window._endorserCD03HL)) window._endorserCD03HL.bringToFront();
 }
 
 function initAssemblyOverlay() {
