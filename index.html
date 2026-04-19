@@ -1395,12 +1395,12 @@ function highlightEndorserDistricts(endorserName) {
     } else if (selectedCongLayer && layer === selectedCongLayer) {
       layer.setStyle(getCongStyle(layer.feature, true));
     } else {
-      var baseStyle = getCongStyle(layer.feature, false);
-      layer.setStyle({fillColor: baseStyle.fillColor, fillOpacity: 0.04, weight: 0.8, color: baseStyle.color, opacity: 0.4});
+      layer.setStyle({fillColor: 'transparent', fillOpacity: 0, weight: 0, color: 'transparent', opacity: 0});
     }
   });
 
   var asmPosList = Object.keys(asmPositions);
+  if (assemblyLayer) assemblyLayer.eachLayer(function(l) { l.setStyle({fillOpacity:0, opacity:0, weight:0}); });
   if (asmPosList.length) {
     var asmFeats = ASSEMBLY_GEOJSON.features.filter(function(f) {
       var pos = 'AD' + (f.properties.D < 10 ? '00' : f.properties.D < 100 ? '0' : '') + f.properties.D;
@@ -1413,6 +1413,7 @@ function highlightEndorserDistricts(endorserName) {
   }
 
   var senatePosList = Object.keys(senatePositions);
+  if (senateLayer) senateLayer.eachLayer(function(l) { l.setStyle({fillOpacity:0, opacity:0, weight:0}); });
   if (senatePosList.length) {
     var senateFeats = SENATE_GEOJSON.features.filter(function(f) {
       var pos = 'SD' + (f.properties.D < 10 ? '0' : '') + f.properties.D;
@@ -1470,6 +1471,8 @@ function clearEndorserOverlay() {
       }
     });
   }
+  if (assemblyLayer) assemblyLayer.resetStyle();
+  if (senateLayer) senateLayer.resetStyle();
   highlightedLayers = [];
   if (endorserAsmHighlight) { mapObj.removeLayer(endorserAsmHighlight); endorserAsmHighlight = null; }
   if (window._endorserSenateHL) { mapObj.removeLayer(window._endorserSenateHL); window._endorserSenateHL = null; }
