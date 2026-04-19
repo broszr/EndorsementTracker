@@ -1717,6 +1717,7 @@ function initAssemblyOverlay() {
                 clearAssemblySelection();
                 return;
               }
+              var clickLL = e.latlng, lng = clickLL.lng, lat = clickLL.lat;
               var foundCong = null;
               function pointInRing(ring,px,py){
                 var inside=false;
