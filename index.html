@@ -954,15 +954,28 @@ function initMap() {
       fl.bindTooltip('Congressional District ' + num, {
         sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
       });
-      fl.on('mouseover', function() {
+      fl.on('mouseover', function(e) {
         if (!currentEndorser) {
           fl.closeTooltip();
+          return;
+        }
+        var pos = 'NY' + (num < 10 ? '0' : '') + num;
+        var isEndorsed = CANDIDATES.some(function(c) {
+          return c.position === pos && c.endorsements.some(function(e) { return e.name === currentEndorser; });
+        });
+        if (isEndorsed) {
+          fl.openTooltip(e.latlng);
         } else {
+          fl.closeTooltip();
+        }
+      });
+      fl.on('mousemove', function(e) {
+        if (currentEndorser) {
           var pos = 'NY' + (num < 10 ? '0' : '') + num;
           var isEndorsed = CANDIDATES.some(function(c) {
             return c.position === pos && c.endorsements.some(function(e) { return e.name === currentEndorser; });
           });
-          if (!isEndorsed) fl.closeTooltip();
+          if (isEndorsed) fl.openTooltip(e.latlng);
         }
       });
       fl.on('click', function(e) {
