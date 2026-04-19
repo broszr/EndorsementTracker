@@ -955,8 +955,9 @@ function initMap() {
         sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
       });
       fl.on('mouseover', function() {
-        if (currentEndorser) {
-          // Only show tooltip if this district is endorsed (visible)
+        if (!currentEndorser) {
+          fl.closeTooltip();
+        } else {
           var pos = 'NY' + (num < 10 ? '0' : '') + num;
           var isEndorsed = CANDIDATES.some(function(c) {
             return c.position === pos && c.endorsements.some(function(e) { return e.name === currentEndorser; });
@@ -1731,7 +1732,7 @@ function initAssemblyOverlay() {
               sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
             });
             layer.on('mouseover', function() {
-              if (!currentEndorser) layer.closeTooltip();
+              layer.closeTooltip();
             });
             layer.on('click', function(e) {
               L.DomEvent.stopPropagation(e);
@@ -1740,7 +1741,6 @@ function initAssemblyOverlay() {
                 clearAssemblySelection();
                 return;
               }
-              var clickLL = e.latlng, lng = clickLL.lng, lat = clickLL.lat;
               var foundCong = null;
               function pointInRing(ring,px,py){
                 var inside=false;
@@ -1894,7 +1894,7 @@ function initSenateOverlay() {
               sticky: true, className: 'district-tooltip', direction: 'top', offset: [0, -4]
             });
             layer.on('mouseover', function() {
-              if (!currentEndorser) layer.closeTooltip();
+              layer.closeTooltip();
             });
             layer.on('click', function(e) {
               L.DomEvent.stopPropagation(e);
