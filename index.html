@@ -728,13 +728,41 @@ function getCongStyle(feature, selected) {
     : party === 'Democratic' ? '#00AEF3'
     : party === 'Republican' ? '#E81B23'
     : '#888888';
-  var borderColor = isOpen ? '#c47e00'
-    : party === 'Democratic' ? '#ffffff'
-    : party === 'Republican' ? '#000000'
-    : '#555555';
   return selected
-    ? {fillColor: fillColor, fillOpacity: 0.55, weight: 2.5, color: borderColor, opacity: 1}
-    : {fillColor: fillColor, fillOpacity: 0.18, weight: 1.2, color: borderColor, opacity: 0.9};
+    ? {fillColor: fillColor, fillOpacity: 0.55, weight: 2.5, color: '#000000', opacity: 1}
+    : {fillColor: fillColor, fillOpacity: 0.18, weight: 1.2, color: '#000000', opacity: 0.9};
+}
+
+function getDistrictFill(pos, candidatesList) {
+  var isOpen = candidatesList.some(function(c) {
+    return c.position === pos && (c.positionStatus || '').toLowerCase().indexOf('open') > -1;
+  });
+  var incumbent = candidatesList.find(function(c) {
+    return c.position === pos && (c.positionStatus || '').toLowerCase().indexOf('incumbent') > -1;
+  });
+  if (isOpen) return '#F2A900';
+  if (!incumbent) return '#888888';
+  return incumbent.party === 'Democratic Party' ? '#00AEF3'
+       : incumbent.party === 'Republican Party' ? '#E81B23'
+       : '#888888';
+}
+
+function getSenateStyle(feature, selected) {
+  var num = parseInt(feature.properties.D, 10);
+  var pos = 'SD' + (num < 10 ? '0' : '') + num;
+  var fillColor = getDistrictFill(pos, SENATE_CANDIDATES);
+  return selected
+    ? {fillColor: fillColor, fillOpacity: 0.55, weight: 2.5, color: '#000000', opacity: 1, dashArray: '5,4'}
+    : {fillColor: fillColor, fillOpacity: 0.18, weight: 0.8, color: '#000000', opacity: 0.5, dashArray: '5,4'};
+}
+
+function getAsmStyle(feature, selected) {
+  var num = parseInt(feature.properties.D, 10);
+  var pos = 'AD' + (num < 10 ? '00' : num < 100 ? '0' : '') + num;
+  var fillColor = getDistrictFill(pos, ASSEMBLY_CANDIDATES);
+  return selected
+    ? {fillColor: fillColor, fillOpacity: 0.55, weight: 2.5, color: '#ffffff', opacity: 1, dashArray: '1,4', lineCap: 'round'}
+    : {fillColor: fillColor, fillOpacity: 0.18, weight: 1.5, color: '#ffffff', opacity: 0.6, dashArray: '1,4', lineCap: 'round'};
 }
 
 function bootApp() {
@@ -1696,9 +1724,7 @@ function initAssemblyOverlay() {
     if (assemblyVisible) {
       if (!assemblyLayer) {
         assemblyLayer = L.geoJSON(ASSEMBLY_GEOJSON, {
-          style: function() {
-            return {color:'#555',fillColor:'#555',fillOpacity:0.06,weight:1.5,opacity:0.6,dashArray:'1,4',lineCap:'round'};
-          },
+          style: function(feature) { return getAsmStyle(feature, false); },
           onEachFeature: function(feature, layer) {
             var num = parseInt(feature.properties.D, 10);
             layer.bindTooltip('Assembly District ' + num, {
@@ -1761,7 +1787,7 @@ function onAssemblyClick(districtNum, layer) {
   clearAssemblySelection(true);
   currentAssemblyDistrict = districtNum;
   selectedAssemblyLayer = layer;
-  layer.setStyle({color:'#000000',fillColor:'#b8860b',fillOpacity:0.55,weight:2.5,opacity:1,dashArray:''});
+  layer.setStyle(getAsmStyle(layer.feature, true));
   enforceLayerOrder();
 
   var pos = 'AD'+(districtNum<10?'00':districtNum<100?'0':'')+districtNum;
@@ -1861,9 +1887,7 @@ function initSenateOverlay() {
     if (senateVisible) {
       if (!senateLayer) {
         senateLayer = L.geoJSON(SENATE_GEOJSON, {
-          style: function() {
-            return {color:'#444',fillColor:'#444',fillOpacity:0.06,weight:0.8,opacity:0.5,dashArray:'5,4'};
-          },
+          style: function(feature) { return getSenateStyle(feature, false); },
           onEachFeature: function(feature, layer) {
             var num = parseInt(feature.properties.D, 10);
             layer.bindTooltip('Senate District ' + num, {
@@ -1926,7 +1950,7 @@ function onSenateClick(districtNum, layer) {
   clearSenateSelection(true);
   currentSenateDistrict = districtNum;
   selectedSenateLayer = layer;
-  layer.setStyle({color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.55,weight:2.5,opacity:1,dashArray:''});
+  layer.setStyle(getSenateStyle(layer.feature, true));
   enforceLayerOrder();
 
   var pos = 'SD'+(districtNum<10?'0':'')+districtNum;
