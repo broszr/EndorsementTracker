@@ -694,14 +694,6 @@ function parseSheetCSV(text) {
   return result;
 }
 
-
-
-// 26 distinct colors for congressional districts (district index 0–25)
-var CONG_COLORS = [
-  '#2166ac','#d6604d','#1b7837','#8073ac','#d48b0e','#4393c3','#b2182b',
-  '#35978f','#c2a5cf','#4d9221','#e08214','#7570b3','#1a9850','#d7191c',
-  '#2c7fb8','#756bb1','#006d2c','#e6550d','#08519c','#a50f15','#41b6c4',
-  '#8c510a','#01665e','#4575b4','#74add1','#bf812d'
 ];
 var currentPos = null;
 var selectedCongLayer = null;
@@ -729,8 +721,8 @@ function getCongStyle(feature, selected) {
     : party === 'Republican' ? '#E81B23'
     : '#888888';
   return selected
-    ? {fillColor: fillColor, fillOpacity: 0.55, weight: 2.5, color: '#000000', opacity: 1}
-    : {fillColor: fillColor, fillOpacity: 0.18, weight: 1.2, color: '#000000', opacity: 0.9};
+    ? {fillColor: fillColor, fillOpacity: 0.65, weight: 2.5, color: '#000000', opacity: 1}
+    : {fillColor: fillColor, fillOpacity: 0.28, weight: 1.2, color: '#000000', opacity: 0.9};
 }
 
 function getDistrictFill(pos, candidatesList) {
@@ -752,8 +744,8 @@ function getSenateStyle(feature, selected) {
   var pos = 'SD' + (num < 10 ? '0' : '') + num;
   var fillColor = getDistrictFill(pos, SENATE_CANDIDATES);
   return selected
-    ? {fillColor: fillColor, fillOpacity: 0.55, weight: 2.5, color: '#000000', opacity: 1, dashArray: '5,4'}
-    : {fillColor: fillColor, fillOpacity: 0.18, weight: 0.8, color: '#000000', opacity: 0.5, dashArray: '5,4'};
+    ? {fillColor: fillColor, fillOpacity: 0.65, weight: 2.5, color: '#000000', opacity: 1, dashArray: '5,4'}
+    : {fillColor: fillColor, fillOpacity: 0.28, weight: 0.8, color: '#000000', opacity: 0.5, dashArray: '5,4'};
 }
 
 function getAsmStyle(feature, selected) {
@@ -761,8 +753,8 @@ function getAsmStyle(feature, selected) {
   var pos = 'AD' + (num < 10 ? '00' : num < 100 ? '0' : '') + num;
   var fillColor = getDistrictFill(pos, ASSEMBLY_CANDIDATES);
   return selected
-    ? {fillColor: fillColor, fillOpacity: 0.55, weight: 2.5, color: '#ffffff', opacity: 1, dashArray: '1,4', lineCap: 'round'}
-    : {fillColor: fillColor, fillOpacity: 0.18, weight: 1.5, color: '#ffffff', opacity: 0.6, dashArray: '1,4', lineCap: 'round'};
+    ? {fillColor: fillColor, fillOpacity: 0.65, weight: 2.5, color: '#ffffff', opacity: 1, dashArray: '1,4', lineCap: 'round'}
+    : {fillColor: fillColor, fillOpacity: 0.28, weight: 1.5, color: '#ffffff', opacity: 0.6, dashArray: '1,4', lineCap: 'round'};
 }
 
 function bootApp() {
