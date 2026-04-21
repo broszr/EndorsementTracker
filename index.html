@@ -1563,8 +1563,15 @@ function redrawEndorserOverlay(endorserName) {
       renderSenatePanel();
     } else if (currentAssemblyDistrict) {
       renderAssemblyPanel();
-    } else {
+    } else if (currentPos) {
       renderPanel();
+    } else {
+      // No district open — return to default state
+      document.getElementById('panel-title').textContent = 'Select a District';
+      document.getElementById('panel-subtitle').textContent = 'Click any district on the map';
+      document.getElementById('filter-bar').classList.remove('visible');
+      document.getElementById('candidates-list').innerHTML = '<div class="no-results">Toggle a district layer to explore candidates and endorsements.</div>';
+      updateClearAllBtn();
     }
   });
 
