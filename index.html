@@ -658,8 +658,6 @@ function parseSheetCSV(text) {
     if (cat || name) endorsers.push({col: col, category: cat, name: name});
   }
 
-  var headerLen = Math.max(categoryRow.length, nameRow.length);
-
   var result = [];
   // Data rows start at index 3 (row 4 in the sheet)
   for (var i = 3; i < lines.length; i++) {
