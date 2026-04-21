@@ -1652,14 +1652,6 @@ var selectedAssemblyLayer = null;
 var endorserAsmHighlight = null;
 window._endorserCD03HL = null;
 
-function badgeClass(status) {
-  if (status === 'Incumbent') return 'badge-incumbent';
-  if (status === 'Challenger') return 'badge-challenger';
-  if (status === 'Open Seat') return 'badge-open';
-  if (status === 'Dropped Out') return 'badge-dropped';
-  return '';
-}
-
 /* Layer click priority: assembly > senate > congressional */
 function updateLayerPriority() {
   var none = function(l) { if(l._path) l._path.style.pointerEvents='none'; };
