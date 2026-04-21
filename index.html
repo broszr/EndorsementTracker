@@ -790,9 +790,12 @@ function fetchSheetData(cb) {
         else if (pos === 'NY AG')        AG_CANDIDATES.push(obj);
         else if (pos === 'NYC CD03')     CD03_CANDIDATES.push(obj);
         else if (/^AD\d+$/i.test(pos)) {
-          // Merge sheet endorsements into matching ASSEMBLY_CANDIDATES entry
+          // Merge sheet data into matching ASSEMBLY_CANDIDATES entry
           var asmMatch = ASSEMBLY_CANDIDATES.find(function(a){return a.position.toUpperCase()===pos.toUpperCase() && a.candidate===obj.candidate;});
-          if (asmMatch && obj.endorsements.length) {
+          if (asmMatch) {
+            if (obj.party) asmMatch.party = obj.party;
+            if (obj.positionStatus) asmMatch.positionStatus = obj.positionStatus;
+            if (obj.campaignStatus) asmMatch.campaignStatus = obj.campaignStatus;
             var asmExisting = asmMatch.endorsements.map(function(e){return e.name;});
             obj.endorsements.forEach(function(e){
               if (e.name && asmExisting.indexOf(e.name) === -1) {
@@ -800,14 +803,17 @@ function fetchSheetData(cb) {
                 asmExisting.push(e.name);
               }
             });
-          } else if (!asmMatch) {
+          } else {
             ASSEMBLY_CANDIDATES.push(obj);
           }
         }
         else if (/^SD\d+$/i.test(pos)) {
-          // Merge sheet endorsements into matching SENATE_CANDIDATES entry
+          // Merge sheet data into matching SENATE_CANDIDATES entry
           var senMatch = SENATE_CANDIDATES.find(function(s){return s.position.toUpperCase()===pos.toUpperCase() && s.candidate===obj.candidate;});
-          if (senMatch && obj.endorsements.length) {
+          if (senMatch) {
+            if (obj.party) senMatch.party = obj.party;
+            if (obj.positionStatus) senMatch.positionStatus = obj.positionStatus;
+            if (obj.campaignStatus) senMatch.campaignStatus = obj.campaignStatus;
             var senExisting = senMatch.endorsements.map(function(e){return e.name;});
             obj.endorsements.forEach(function(e){
               if (e.name && senExisting.indexOf(e.name) === -1) {
@@ -815,7 +821,7 @@ function fetchSheetData(cb) {
                 senExisting.push(e.name);
               }
             });
-          } else if (!senMatch) {
+          } else {
             SENATE_CANDIDATES.push(obj);
           }
         }
