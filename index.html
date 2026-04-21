@@ -966,6 +966,10 @@ function initMap() {
       selectedCongLayer.setStyle(getCongStyle(selectedCongLayer.feature, false));
       selectedCongLayer = null;
       currentPos = null;
+      document.getElementById('panel-title').textContent = 'Select a District';
+      document.getElementById('panel-subtitle').textContent = 'Click any district on the map';
+      document.getElementById('filter-bar').classList.remove('visible');
+      document.getElementById('candidates-list').innerHTML = '<div class="no-results">Click a district on the map to explore candidates.</div>';
       updateClearAllBtn();
     }
     if (currentEndorser) {
@@ -1314,8 +1318,9 @@ function renderPanel() {
   var titleEl = document.getElementById('panel-title');
   titleEl.innerHTML = '';
   titleEl.appendChild(document.createTextNode('Congressional District ' + distNum));
-  var isOpenD = cands.some(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('open') > -1; });
-  var incumbentD = cands.find(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('incumbent') > -1; });
+  var allCands = CANDIDATES.filter(function(c) { return c.position === currentPos; });
+  var isOpenD = allCands.some(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('open') > -1; });
+  var incumbentD = allCands.find(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('incumbent') > -1; });
   var subtitleEl = document.getElementById('panel-subtitle');
   subtitleEl.innerHTML = '';
   if (isOpenD) {
@@ -1766,6 +1771,22 @@ function renderAssemblyPanel() {
   var districtNum = currentAssemblyDistrict;
   var pos = 'AD'+(districtNum<10?'00':districtNum<100?'0':'')+districtNum;
   var cands = ASSEMBLY_CANDIDATES.filter(function(c){return c.position===pos;});
+
+  // Restore panel header (may have been overwritten by endorser mode)
+  var titleEl = document.getElementById('panel-title');
+  titleEl.innerHTML = '';
+  titleEl.appendChild(document.createTextNode('Assembly District ' + districtNum));
+  var isOpen = cands.some(function(c){return c.positionStatus==='Open Seat';});
+  var asmIncumbent = cands.find(function(c){return c.positionStatus==='Incumbent';});
+  var subtitleEl = document.getElementById('panel-subtitle');
+  subtitleEl.innerHTML = '';
+  if (isOpen) {
+    var ob = document.createElement('span');
+    ob.className = 'badge badge-open'; ob.textContent = 'Open Seat'; subtitleEl.appendChild(ob);
+  } else {
+    subtitleEl.textContent = asmIncumbent ? asmIncumbent.candidate : '';
+  }
+
   var filtered = cands.filter(function(c){
     if(currentParty==='ALL') return true;
     if(currentParty==='other') return c.party!=='Democratic Party'&&c.party!=='Republican Party';
@@ -1929,6 +1950,22 @@ function renderSenatePanel() {
   var districtNum = currentSenateDistrict;
   var pos = 'SD'+(districtNum<10?'0':'')+districtNum;
   var cands = SENATE_CANDIDATES.filter(function(c){return c.position===pos;});
+
+  // Restore panel header (may have been overwritten by endorser mode)
+  var titleEl = document.getElementById('panel-title');
+  titleEl.innerHTML = '';
+  titleEl.appendChild(document.createTextNode('Senate District ' + districtNum));
+  var isOpen = cands.some(function(c){return c.positionStatus==='Open Seat';});
+  var senIncumbent = cands.find(function(c){return c.positionStatus==='Incumbent';});
+  var subtitleEl = document.getElementById('panel-subtitle');
+  subtitleEl.innerHTML = '';
+  if (isOpen) {
+    var ob = document.createElement('span');
+    ob.className = 'badge badge-open'; ob.textContent = 'Open Seat'; subtitleEl.appendChild(ob);
+  } else {
+    subtitleEl.textContent = senIncumbent ? senIncumbent.candidate : '';
+  }
+
   var filtered = cands.filter(function(c){
     if(currentParty==='ALL') return true;
     if(currentParty==='other') return c.party!=='Democratic Party'&&c.party!=='Republican Party';
