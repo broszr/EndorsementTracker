@@ -1577,19 +1577,6 @@ function redrawEndorserOverlay(endorserName) {
   positionSearchBar();
 }
 
-
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('clearBtn').addEventListener('click', function() {
-    clearEndorserOverlay();
-    if (currentPos) {
-      var cands = CANDIDATES.filter(function(c) { return c.position === currentPos; });
-      var hasOther = cands.some(function(c) { return c.party !== 'Democratic Party' && c.party !== 'Republican Party'; });
-      document.querySelector('.filter-chip[data-party="other"]').style.display = hasOther ? '' : 'none';
-    }
-  });
-});
-
-
 var CAND_CATS = {"0":"Current and Former Candidates","1":"Democratic Parties and Committees","2":"Democratic Socialists of America","3":"Former NYC Council Member","4":"Former NYC Official","5":"Former National Politician","6":"Former New York Federal Official","7":"Former State Legislator","8":"Former Statewide Leader","9":"Local Politician (Non-NYC)","10":"Misc.","11":"NY State Legislator","12":"NYC Council Member","13":"NYC Official","14":"National Politician","15":"New York Federal Official","16":"Organizations and PACs","17":"Republican Parties and Committees","18":"Statewide Leader","19":"Third Party","20":"Unions"};
 var ASM_PARTY = {"D":"Democratic Party","R":"Republican Party","":"","?":"?","I":"Independent"};
 var ASM_STATUS = {"I":"Incumbent","C":"Challenger","O":"Open Seat","":""};
