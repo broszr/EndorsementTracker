@@ -1367,12 +1367,6 @@ var endorserBubbleEl = null;
 var endorserBubblePos = null; // {x, y} persisted drop position
 var highlightedLayers = [];
 
-function rebuildCentroidsAndRedraw() {
-  if (currentEndorser && endorserBubbleEl) {
-    redrawEndorserOverlay(currentEndorser);
-  }
-}
-
 function highlightEndorserDistricts(endorserName) {
 
   highlightedLayers.forEach(function(l) {
