@@ -1513,9 +1513,6 @@ function redrawEndorserOverlay(endorserName) {
   var counts = highlightEndorserDistricts(endorserName);
 
   var mapPanel = document.getElementById('map-panel');
-  var panelW = mapPanel.offsetWidth;
-  var panelH = mapPanel.offsetHeight;
-
   var PAD = 80;
   var bx = endorserBubblePos ? endorserBubblePos.x : PAD;
   var by = endorserBubblePos ? endorserBubblePos.y : PAD;
