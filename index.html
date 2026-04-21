@@ -1306,7 +1306,7 @@ function renderPanel() {
   }
 
   /* ── DISTRICT MODE: original behaviour ── */
-   if (!currentPos) return;
+  if (!currentPos) return;
   var cands = CANDIDATES.filter(function(c) { return c.position === currentPos; });
 
   // Restore panel header (may have been overwritten by endorser mode)
@@ -1314,18 +1314,18 @@ function renderPanel() {
   var titleEl = document.getElementById('panel-title');
   titleEl.innerHTML = '';
   titleEl.appendChild(document.createTextNode('Congressional District ' + distNum));
-  var isOpen = cands.some(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('open') > -1; });
-  var incumbent = cands.find(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('incumbent') > -1; });
+  var isOpenD = cands.some(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('open') > -1; });
+  var incumbentD = cands.find(function(c) { return (c.positionStatus || '').toLowerCase().indexOf('incumbent') > -1; });
   var subtitleEl = document.getElementById('panel-subtitle');
   subtitleEl.innerHTML = '';
-  if (isOpen) {
+  if (isOpenD) {
     var ob = document.createElement('span');
     ob.className = 'badge badge-open';
     ob.textContent = 'Open Seat';
     subtitleEl.appendChild(ob);
   } else {
-    subtitleEl.textContent = incumbent ? incumbent.candidate : '';
-  };
+    subtitleEl.textContent = incumbentD ? incumbentD.candidate : '';
+  }
 
   if (currentParty !== 'ALL') {
     cands = cands.filter(function(c) {
@@ -1583,7 +1583,13 @@ function redrawEndorserOverlay(endorserName) {
     endorserBubblePos = null;
     document.getElementById('endorser-banner').classList.remove('visible');
     clearEndorserOverlay();
-    renderPanel();
+    if (currentSenateDistrict) {
+      renderSenatePanel();
+    } else if (currentAssemblyDistrict) {
+      renderAssemblyPanel();
+    } else {
+      renderPanel();
+    }
   });
 
   mapPanel.appendChild(wrap);
