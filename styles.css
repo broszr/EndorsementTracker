@@ -583,3 +583,37 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
     transform: translate(-50%, -50%);
   }
 }
+
+/* ── Map legend ── */
+.map-legend {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #c8bfaa;
+  border-radius: 2px;
+  padding: 7px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  font-family: 'DM Mono', monospace;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: none;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.legend-label {
+  font-size: 0.6rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #0f0e0d;
+  white-space: nowrap;
+  line-height: 1;
+}
