@@ -537,6 +537,28 @@ function initMap() {
     // Return map to initial bounds
     mapObj.flyToBounds(shoreLayer.getBounds(), {padding: [20, 20], duration: 0.6});
   });
+
+  /* ── Map legend ── */
+  var Legend = L.Control.extend({
+    options: { position: 'topleft' },
+    onAdd: function() {
+      var div = L.DomUtil.create('div', 'map-legend');
+      var items = [
+        { color: '#00AEF3', label: 'Democratic Incumbent' },
+        { color: '#E81B23', label: 'Republican Incumbent' },
+        { color: '#F2A900', label: 'Open Seat' }
+      ];
+      items.forEach(function(item) {
+        div.innerHTML +=
+          '<div class="legend-item">' +
+            '<span class="legend-swatch" style="background:' + item.color + ';"></span>' +
+            '<span class="legend-label">' + item.label + '</span>' +
+          '</div>';
+      });
+      return div;
+    }
+  });
+  new Legend().addTo(mapObj);
 }
 
 function mobileExpandPanel() {
