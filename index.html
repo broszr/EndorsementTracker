@@ -495,6 +495,7 @@ function initMap() {
     currentEndorser = null;
     endorserBubblePos = null;
     document.getElementById('endorser-banner').classList.remove('visible');
+    clearEndorserOverlay();
     if (currentSenateDistrict) {
       renderSenatePanel();
     } else if (currentAssemblyDistrict) {
@@ -718,6 +719,7 @@ function makeCandCol(c, showDistrictBadge) {
             document.getElementById('endorser-banner').classList.remove('visible');
           } else {
             currentEndorser = name;
+            activateEndorserLayers(name);
             document.getElementById('banner-text').textContent = 'Filtering by: ' + name;
             document.getElementById('endorser-banner').classList.add('visible');
           }
@@ -1861,10 +1863,7 @@ function openCandidateInPanel(candidateName) {
   });
 }
 
-function selectSearchEndorser(r) {
-  var name = r.label;
-
-  // Determine which layers have endorsed candidates
+function activateEndorserLayers(name) {
   var hasCong = CANDIDATES.some(function(c) {
     return c.endorsements.some(function(e) { return e.name === name; });
   });
@@ -1874,11 +1873,42 @@ function selectSearchEndorser(r) {
   var hasSen = SENATE_CANDIDATES.some(function(c) {
     return c.endorsements.some(function(e) { return e.name === name; });
   });
+  // Add layers directly to the map rather than using .click() on the toggle buttons,
+  // which would flip visibility state and potentially clear district selections.
+  if (hasCong && !congVisible) {
+    congVisible = true;
+    document.getElementById('congToggle').classList.add('active');
+    geoLayer.addTo(mapObj);
+    updateLayerPriority();
+  }
+  if (hasAsm && !assemblyVisible) {
+    assemblyVisible = true;
+    document.getElementById('assemblyToggle').classList.add('active');
+    if (assemblyLayer) {
+      assemblyLayer.addTo(mapObj);
+    } else {
+      // Layer not yet created — safe to use the toggle click (layer is definitely off)
+      document.getElementById('assemblyToggle').click();
+    }
+    updateLayerPriority();
+  }
+  if (hasSen && !senateVisible) {
+    senateVisible = true;
+    document.getElementById('senateToggle').classList.add('active');
+    if (senateLayer) {
+      senateLayer.addTo(mapObj);
+    } else {
+      // Layer not yet created — safe to use the toggle click (layer is definitely off)
+      document.getElementById('senateToggle').click();
+    }
+    updateLayerPriority();
+  }
+}
 
-  // Activate layers that have endorsed candidates (if not already on)
-  if (hasCong && !congVisible) document.getElementById('congToggle').click();
-  if (hasAsm && !assemblyVisible) document.getElementById('assemblyToggle').click();
-  if (hasSen && !senateVisible) document.getElementById('senateToggle').click();
+function selectSearchEndorser(r) {
+  var name = r.label;
+
+  activateEndorserLayers(name);
 
   currentEndorser = name;
   document.getElementById('banner-text').textContent = 'Filtering by: ' + name;
