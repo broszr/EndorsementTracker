@@ -495,7 +495,13 @@ function initMap() {
     currentEndorser = null;
     endorserBubblePos = null;
     document.getElementById('endorser-banner').classList.remove('visible');
-    renderPanel();
+    if (currentSenateDistrict) {
+      renderSenatePanel();
+    } else if (currentAssemblyDistrict) {
+      renderAssemblyPanel();
+    } else {
+      renderPanel();
+    }
   });
 
   /* Mobile side panel collapse */
