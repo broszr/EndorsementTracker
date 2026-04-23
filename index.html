@@ -651,6 +651,12 @@ function makeCandCol(c, showDistrictBadge) {
     droppedLabel.textContent = 'Dropped Out';
     hdrTop.appendChild(droppedLabel);
   }
+  if ((c.campaignStatus || '').toLowerCase().indexOf('failed to make ballot') > -1) {
+    var ballotLabel = document.createElement('span');
+    ballotLabel.className = 'badge-dropped';
+    ballotLabel.textContent = 'Failed to Make Ballot';
+    hdrTop.appendChild(ballotLabel);
+  }
 
   var toggle = document.createElement('span');
   toggle.className = 'cand-toggle';
@@ -737,9 +743,10 @@ function makeCandCol(c, showDistrictBadge) {
 function updateFilterCount(cands) {
   var el = document.getElementById('filter-bar-count');
   if (!el) return;
-  // Count active (not dropped out) candidates
+  // Count active (not dropped out or failed to make ballot) candidates
   var active = cands.filter(function(c) {
-    return (c.campaignStatus || '').toLowerCase().indexOf('dropped') === -1;
+    var cs = (c.campaignStatus || '').toLowerCase();
+    return cs.indexOf('dropped') === -1 && cs.indexOf('failed to make ballot') === -1;
   });
   el.textContent = active.length + ' candidate' + (active.length !== 1 ? 's' : '');
 }
