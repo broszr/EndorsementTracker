@@ -473,6 +473,16 @@ function initMap() {
       document.getElementById('candidates-list').innerHTML = '<div class="no-results">Click a district on the map to explore candidates.</div>';
       updateClearAllBtn();
     }
+    // Deselect CD03 highlight
+    if (window._selectedCD03Layer) {
+      mapObj.removeLayer(window._selectedCD03Layer);
+      window._selectedCD03Layer = null;
+      document.getElementById('panel-title').textContent = 'Select a District';
+      document.getElementById('panel-subtitle').textContent = 'Click any district on the map';
+      document.getElementById('filter-bar').classList.remove('visible');
+      document.getElementById('candidates-list').innerHTML = '<div class="no-results">Click a district on the map to explore candidates.</div>';
+      updateClearAllBtn();
+    }
     if (currentEndorser) {
       currentEndorser = null;
       endorserBubblePos = null;
@@ -1033,6 +1043,7 @@ function clearEndorserOverlay() {
   if (endorserAsmHighlight) { mapObj.removeLayer(endorserAsmHighlight); endorserAsmHighlight = null; }
   if (window._endorserSenateHL) { mapObj.removeLayer(window._endorserSenateHL); window._endorserSenateHL = null; }
   if (window._endorserCD03HL) { mapObj.removeLayer(window._endorserCD03HL); window._endorserCD03HL = null; }
+  if (window._selectedCD03Layer) { mapObj.removeLayer(window._selectedCD03Layer); window._selectedCD03Layer = null; }
   if (geoLayer) updateLayerPriority();
 }
 
@@ -1543,6 +1554,8 @@ function clearAllSelections() {
   clearAssemblySelection();
   // Clear senate
   clearSenateSelection();
+  // Clear CD03 highlight
+  if (window._selectedCD03Layer) { mapObj.removeLayer(window._selectedCD03Layer); window._selectedCD03Layer = null; }
   // Clear endorser
   currentEndorser = null;
   endorserBubblePos = null;
@@ -1615,6 +1628,16 @@ function buildSearchIndex() {
       results.push({type:'district', key:key, label:'Senate District ' + num, pos:c.position, distType:'sen', distNum:num});
     }
   });
+
+  // NYC Council District 3
+  if (CD03_CANDIDATES.length) {
+    results.push({type:'district', key:'cd03', label:'NYC Council District 3', distType:'cd03'});
+  }
+
+  // Statewide races
+  if (GOV_CANDIDATES.length)  results.push({type:'district', key:'gov',  label:'Governor',          distType:'gov'});
+  if (COMP_CANDIDATES.length) results.push({type:'district', key:'comp', label:'Comptroller',        distType:'comp'});
+  if (AG_CANDIDATES.length)   results.push({type:'district', key:'ag',   label:'Attorney General',   distType:'ag'});
 
   // Candidates — all pools
   var allPools = [
@@ -1763,6 +1786,48 @@ function initMapSearch() {
   document.getElementById('map-search-wrap').addEventListener('click', function(e) { e.stopPropagation(); });
 }
 
+function renderStatewidePanel(pos, title, cands) {
+  currentPos = null;
+  currentAssemblyDistrict = null;
+  currentSenateDistrict = null;
+  document.getElementById('panel-title').textContent = title;
+  document.getElementById('panel-subtitle').textContent = 'Statewide Race';
+  document.getElementById('filter-bar').classList.add('visible');
+  var list = document.getElementById('candidates-list');
+  list.innerHTML = '';
+  var filtered = cands.filter(function(c) {
+    if (currentParty === 'ALL') return true;
+    if (currentParty === 'other') return c.party !== 'Democratic Party' && c.party !== 'Republican Party';
+    return c.party === currentParty;
+  });
+  if (!filtered.length) {
+    list.innerHTML = '<div class="no-results">No candidates match the current filter.</div>';
+    return;
+  }
+  filtered.forEach(function(c) { list.appendChild(makeCandCol(c)); });
+}
+
+function renderCD03Panel() {
+  currentPos = null;
+  currentAssemblyDistrict = null;
+  currentSenateDistrict = null;
+  document.getElementById('panel-title').textContent = 'NYC Council District 3';
+  document.getElementById('panel-subtitle').textContent = '';
+  document.getElementById('filter-bar').classList.add('visible');
+  var list = document.getElementById('candidates-list');
+  list.innerHTML = '';
+  var filtered = CD03_CANDIDATES.filter(function(c) {
+    if (currentParty === 'ALL') return true;
+    if (currentParty === 'other') return c.party !== 'Democratic Party' && c.party !== 'Republican Party';
+    return c.party === currentParty;
+  });
+  if (!filtered.length) {
+    list.innerHTML = '<div class="no-results">No candidates match the current filter.</div>';
+    return;
+  }
+  filtered.forEach(function(c) { list.appendChild(makeCandCol(c)); });
+}
+
 function flyToDistrict(bounds) {
   var currentZoom = mapObj.getZoom();
   var maxZoom = mapObj.getMaxZoom() || 14;
@@ -1811,6 +1876,22 @@ function selectSearchDistrict(r) {
         flyToDistrict(l.getBounds());
       }
     });
+  } else if (r.distType === 'cd03') {
+    renderCD03Panel();
+    if (window._selectedCD03Layer) { mapObj.removeLayer(window._selectedCD03Layer); }
+    window._selectedCD03Layer = L.geoJSON(CD03_GEOJSON, {
+      style: function() { return {color:'#ffffff', fillColor:'#b8860b', fillOpacity:0.55, weight:2.5, opacity:1, dashArray:''}; },
+      interactive: false
+    }).addTo(mapObj);
+    enforceLayerOrder();
+    var cd03Bounds = L.geoJSON(CD03_GEOJSON).getBounds();
+    flyToDistrict(cd03Bounds);
+  } else if (r.distType === 'gov') {
+    renderStatewidePanel('NY GOV', 'Governor', GOV_CANDIDATES);
+  } else if (r.distType === 'comp') {
+    renderStatewidePanel('NY COMP', 'Comptroller', COMP_CANDIDATES);
+  } else if (r.distType === 'ag') {
+    renderStatewidePanel('NY AG', 'Attorney General', AG_CANDIDATES);
   }
 }
 
@@ -1846,9 +1927,19 @@ function selectSearchCandidate(r) {
     var num = parseInt(pos.replace(/^SD0*/i,''), 10);
     selectSearchDistrict({distType:'sen', distNum:num, pos:pos});
     setTimeout(function() { openCandidateInPanel(c.candidate); }, 200);
+  } else if (pos === 'NYC CD03') {
+    selectSearchDistrict({distType:'cd03'});
+    setTimeout(function() { openCandidateInPanel(c.candidate); }, 200);
+  } else if (pos === 'NY GOV') {
+    renderStatewidePanel('NY GOV', 'Governor', GOV_CANDIDATES);
+    setTimeout(function() { openCandidateInPanel(c.candidate); }, 80);
+  } else if (pos === 'NY COMP') {
+    renderStatewidePanel('NY COMP', 'Comptroller', COMP_CANDIDATES);
+    setTimeout(function() { openCandidateInPanel(c.candidate); }, 80);
+  } else if (pos === 'NY AG') {
+    renderStatewidePanel('NY AG', 'Attorney General', AG_CANDIDATES);
+    setTimeout(function() { openCandidateInPanel(c.candidate); }, 80);
   } else {
-    // Statewide — just trigger endorser panel via currentPos trick
-    currentPos = pos;
     renderPanel();
     setTimeout(function() { openCandidateInPanel(c.candidate); }, 80);
   }
