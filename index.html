@@ -1195,23 +1195,6 @@ function redrawEndorserOverlay(endorserName) {
 var ASSEMBLY_CANDIDATES = [];
 var SENATE_CANDIDATES = [];
 
-var ASSEMBLY_GEOJSON = (function(){
-  var S=10000;
-  function dr(enc){
-    var pts=[],lng=enc[0][0]/S,lat=enc[0][1]/S;pts.push([lng,lat]);
-    for(var i=1;i<enc.length;i++){lng+=enc[i][0]/S;lat+=enc[i][1]/S;pts.push([Math.round(lng*S)/S,Math.round(lat*S)/S]);}
-    return pts;
-  }
-  var features=[];
-  for(var d=1;d<=150;d++){
-    var polys=ASM_GEO_DELTA[String(d)];
-    var coords=polys.map(function(poly){return poly.map(dr);});
-    var geom=coords.length===1?{type:'Polygon',coordinates:coords[0]}:{type:'MultiPolygon',coordinates:coords};
-    features.push({type:'Feature',geometry:geom,properties:{D:d}});
-  }
-  return {type:'FeatureCollection',features:features};
-})();
-
 var currentAssemblyDistrict = null;
 
 /* ── Assembly overlay ── */
@@ -1399,24 +1382,6 @@ function clearAssemblySelection(keepPos) {
 
 
 /* ── Senate data ── */
-var SENATE_GEOJSON = (function(){
-  var S=10000;
-  function dr(enc){
-    var pts=[],lng=enc[0][0]/S,lat=enc[0][1]/S;pts.push([lng,lat]);
-    for(var i=1;i<enc.length;i++){lng+=enc[i][0]/S;lat+=enc[i][1]/S;pts.push([Math.round(lng*S)/S,Math.round(lat*S)/S]);}
-    return pts;
-  }
-  var features=[];
-  for(var d=1;d<=63;d++){
-    var polys=SENATE_GEO_DELTA[String(d)];
-    if(!polys)continue;
-    var coords=polys.map(function(poly){return poly.map(dr);});
-    var geom=coords.length===1?{type:'Polygon',coordinates:coords[0]}:{type:'MultiPolygon',coordinates:coords};
-    features.push({type:'Feature',geometry:geom,properties:{D:d}});
-  }
-  return {type:'FeatureCollection',features:features};
-})();
-
 var senateLayer = null;
 var senateVisible = false;
 var selectedSenateLayer = null;
