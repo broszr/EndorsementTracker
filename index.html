@@ -298,10 +298,10 @@ function fetchSheetData(cb) {
       CANDIDATES = []; GOV_CANDIDATES = []; COMP_CANDIDATES = []; AG_CANDIDATES = []; CD03_CANDIDATES = [];
       ASSEMBLY_CANDIDATES = []; SENATE_CANDIDATES = [];
       CANDIDATES_RAW.forEach(function(r) {
-        var obj = {position:r[0], positionStatus:r[1], candidate:r[2],
+        var pos = (r[0] || '').trim().toUpperCase();
+        var obj = {position:pos, positionStatus:r[1], candidate:r[2],
           campaignStatus:r[3], party:r[4],
           endorsements:r[5].map(function(e){return {category:e[0], name:e[1]};})};
-        var pos = (r[0] || '').trim().toUpperCase();
         if (pos === 'NY GOV')            GOV_CANDIDATES.push(obj);
         else if (pos === 'NY COMP')      COMP_CANDIDATES.push(obj);
         else if (pos === 'NY AG')        AG_CANDIDATES.push(obj);
