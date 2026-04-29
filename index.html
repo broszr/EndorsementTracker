@@ -707,10 +707,13 @@ function makeCandCol(c, showDistrictBadge) {
   }
   hdr.appendChild(meta);
 
+  var countRow = document.createElement('div');
+  countRow.className = 'cand-count-row';
+
   var ec = document.createElement('div');
   ec.className = 'cand-th-count';
   ec.textContent = c.endorsements.length + ' endorsement' + (c.endorsements.length !== 1 ? 's' : '');
-  hdr.appendChild(ec);
+  countRow.appendChild(ec);
 
   if (c.endorsements.length > 0) {
     var compareBtn = document.createElement('button');
@@ -736,8 +739,10 @@ function makeCandCol(c, showDistrictBadge) {
         renderSimilarityTable(c);
       }
     });
-    hdr.appendChild(compareBtn);
+    countRow.appendChild(compareBtn);
   }
+
+  hdr.appendChild(countRow);
 
   col.appendChild(hdr);
 
@@ -2076,6 +2081,19 @@ function navigateBack() {
         renderSimilarityTable(c);
       }
     });
+  });
+
+  // Re-attach endorser list toggle listeners
+  document.querySelectorAll('.cand-col').forEach(function(col) {
+    var hdr = col.querySelector('.cand-col-header');
+    var endorserList = col.querySelector('.cand-endorser-list');
+    var toggle = col.querySelector('.cand-toggle');
+    if (hdr && endorserList && toggle) {
+      hdr.addEventListener('click', function() {
+        endorserList.classList.toggle('open');
+        toggle.textContent = endorserList.classList.contains('open') ? '▴' : '▾';
+      });
+    }
   });
 }
 
