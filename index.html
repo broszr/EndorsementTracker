@@ -57,6 +57,9 @@
   <div id="side-panel">
     <div class="side-header" id="side-header-el">
       <button id="panel-collapse-btn" title="Collapse panel">▾</button>
+      <div id="panel-back-row" style="display:none;">
+        <button id="panel-back-btn">&#8592; Back</button>
+      </div>
       <div class="side-header-row">
         <div style="flex:1;min-width:0;">
           <div class="side-header-title" id="panel-title">Select a District</div>
@@ -503,6 +506,8 @@ function initMap() {
       if (currentSenateDistrict) { renderSenatePanel(); } else if (currentAssemblyDistrict) { renderAssemblyPanel(); } else { renderPanel(); }
     });
   });
+  document.getElementById('panel-back-btn').addEventListener('click', navigateBack);
+
   document.getElementById('clearBtn').addEventListener('click', function() {
     currentEndorser = null;
     endorserBubblePos = null;
@@ -699,6 +704,19 @@ function makeCandCol(c, showDistrictBadge) {
   ec.className = 'cand-th-count';
   ec.textContent = c.endorsements.length + ' endorsement' + (c.endorsements.length !== 1 ? 's' : '');
   hdr.appendChild(ec);
+
+  if (c.endorsements.length > 0) {
+    var compareBtn = document.createElement('button');
+    compareBtn.className = 'compare-btn';
+    compareBtn.textContent = 'Compare';
+    compareBtn.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      pushHistory();
+      renderSimilarityTable(c);
+    });
+    hdr.appendChild(compareBtn);
+  }
+
   col.appendChild(hdr);
 
   if (c.endorsements.length > 0) {
@@ -1547,6 +1565,8 @@ function clearAllSelections() {
   currentPos = null;
   currentCD03 = false;
   currentStatewide = null;
+  navHistory = [];
+  document.getElementById('panel-back-row').style.display = 'none';
   // Clear assembly
   clearAssemblySelection();
   // Clear senate
@@ -1965,6 +1985,238 @@ function openCandidateInPanel(candidateName) {
       col.scrollIntoView({behavior:'smooth', block:'nearest'});
     }
   });
+}
+
+/* ── Navigation history ── */
+var navHistory = [];
+
+function captureState() {
+  return {
+    pos:               currentPos,
+    assemblyDistrict:  currentAssemblyDistrict,
+    senateDistrict:    currentSenateDistrict,
+    cd03:              currentCD03,
+    statewide:         currentStatewide,
+    endorser:          currentEndorser,
+    panelHTML:         document.getElementById('candidates-list').innerHTML,
+    panelTitle:        document.getElementById('panel-title').textContent,
+    panelSubtitle:     document.getElementById('panel-subtitle').innerHTML,
+    filterVisible:     document.getElementById('filter-bar').classList.contains('visible'),
+    bannerVisible:     document.getElementById('endorser-banner').classList.contains('visible'),
+    bannerText:        document.getElementById('banner-text').textContent
+  };
+}
+
+function pushHistory() {
+  navHistory.push(captureState());
+  document.getElementById('panel-back-row').style.display = '';
+}
+
+function navigateBack() {
+  if (!navHistory.length) return;
+  var s = navHistory.pop();
+  currentPos              = s.pos;
+  currentAssemblyDistrict = s.assemblyDistrict;
+  currentSenateDistrict   = s.senateDistrict;
+  currentCD03             = s.cd03;
+  currentStatewide        = s.statewide;
+  currentEndorser         = s.endorser;
+  document.getElementById('candidates-list').innerHTML = s.panelHTML;
+  document.getElementById('panel-title').textContent   = s.panelTitle;
+  document.getElementById('panel-subtitle').innerHTML  = s.panelSubtitle;
+  if (s.filterVisible) document.getElementById('filter-bar').classList.add('visible');
+  else document.getElementById('filter-bar').classList.remove('visible');
+  if (s.bannerVisible) {
+    document.getElementById('endorser-banner').classList.add('visible');
+    document.getElementById('banner-text').textContent = s.bannerText;
+  } else {
+    document.getElementById('endorser-banner').classList.remove('visible');
+  }
+  document.getElementById('panel-back-row').style.display = navHistory.length ? '' : 'none';
+  // Re-attach chip click listeners lost when innerHTML was restored
+  document.querySelectorAll('.chip[data-endorser]').forEach(function(chip) {
+    var name = chip.dataset.endorser;
+    chip.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      if (currentEndorser === name) {
+        currentEndorser = null;
+        endorserBubblePos = null;
+        document.getElementById('endorser-banner').classList.remove('visible');
+      } else {
+        currentEndorser = name;
+        activateEndorserLayers(name);
+        document.getElementById('banner-text').textContent = 'Filtering by: ' + name;
+        document.getElementById('endorser-banner').classList.add('visible');
+      }
+      renderPanel();
+    });
+  });
+  // Re-attach compare button listeners
+  document.querySelectorAll('.compare-btn[data-candidate]').forEach(function(btn) {
+    var candidateName = btn.dataset.candidate;
+    var allCands = CANDIDATES.concat(GOV_CANDIDATES, COMP_CANDIDATES, AG_CANDIDATES, CD03_CANDIDATES, ASSEMBLY_CANDIDATES, SENATE_CANDIDATES);
+    var c = allCands.find(function(x) { return x.candidate === candidateName; });
+    if (c) {
+      btn.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        pushHistory();
+        renderSimilarityTable(c);
+      });
+    }
+  });
+}
+
+function getAllCandidates() {
+  return CANDIDATES.concat(GOV_CANDIDATES, COMP_CANDIDATES, AG_CANDIDATES, CD03_CANDIDATES, ASSEMBLY_CANDIDATES, SENATE_CANDIDATES);
+}
+
+function getPositionLabel(pos) {
+  if (!pos) return '';
+  if (pos === 'NY GOV')  return 'Governor';
+  if (pos === 'NY COMP') return 'Comptroller';
+  if (pos === 'NY AG')   return 'Attorney General';
+  if (pos === 'NYC CD03') return 'NYC Council D3';
+  if (/^NY\d+$/i.test(pos)) return 'Congressional D' + parseInt(pos.replace(/^NY/i,''),10);
+  if (/^AD\d+$/i.test(pos)) return 'Assembly D' + parseInt(pos.replace(/^AD0*/i,''),10);
+  if (/^SD\d+$/i.test(pos)) return 'Senate D' + parseInt(pos.replace(/^SD0*/i,''),10);
+  return pos;
+}
+
+function renderSimilarityTable(candidate) {
+  var myNames = candidate.endorsements.map(function(e){ return e.name; }).filter(Boolean);
+  var mySet   = {};
+  myNames.forEach(function(n){ mySet[n] = true; });
+  var total   = myNames.length;
+
+  var rows = [];
+  getAllCandidates().forEach(function(other) {
+    if (other.candidate === candidate.candidate && other.position === candidate.position) return;
+    var shared = other.endorsements.filter(function(e){ return e.name && mySet[e.name]; });
+    if (!shared.length) return;
+    rows.push({
+      candidate: other.candidate,
+      position:  other.position,
+      party:     other.party,
+      shared:    shared.length,
+      pct:       Math.round(shared.length / total * 100),
+      sharedNames: shared.map(function(e){ return e.name; }).sort()
+    });
+  });
+  rows.sort(function(a,b){ return b.pct - a.pct || b.shared - a.shared; });
+
+  // Render
+  document.getElementById('panel-title').textContent = candidate.candidate;
+  document.getElementById('panel-subtitle').textContent = 'Endorsement similarity';
+
+  var list = document.getElementById('candidates-list');
+  list.innerHTML = '';
+
+  if (!rows.length) {
+    list.innerHTML = '<div class="no-results">No candidates share endorsers with ' + candidate.candidate + '.</div>';
+    return;
+  }
+
+  var table = document.createElement('table');
+  table.className = 'similarity-table';
+  table.innerHTML =
+    '<thead><tr>' +
+      '<th>Candidate</th>' +
+      '<th>Race</th>' +
+      '<th>Shared</th>' +
+      '<th>%</th>' +
+    '</tr></thead>';
+
+  var tbody = document.createElement('tbody');
+  rows.forEach(function(row) {
+    var tr = document.createElement('tr');
+    tr.className = 'similarity-row';
+
+    var tdName = document.createElement('td');
+    var nameLink = document.createElement('button');
+    nameLink.className = 'similarity-name-btn';
+    nameLink.textContent = row.candidate;
+    nameLink.addEventListener('click', function() {
+      pushHistory();
+      navigateToCandidate(row.candidate, row.position);
+    });
+    tdName.appendChild(nameLink);
+
+    var tdRace = document.createElement('td');
+    tdRace.textContent = getPositionLabel(row.position);
+
+    var tdShared = document.createElement('td');
+    tdShared.className = 'sim-shared';
+    tdShared.title = row.sharedNames.join(', ');
+    tdShared.textContent = row.shared;
+
+    var tdPct = document.createElement('td');
+    tdPct.className = 'sim-pct';
+    var pctBar = document.createElement('div');
+    pctBar.className = 'sim-pct-bar';
+    pctBar.style.width = row.pct + '%';
+    var pctLabel = document.createElement('span');
+    pctLabel.textContent = row.pct + '%';
+    tdPct.appendChild(pctBar);
+    tdPct.appendChild(pctLabel);
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdRace);
+    tr.appendChild(tdShared);
+    tr.appendChild(tdPct);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  list.appendChild(table);
+}
+
+function navigateToCandidate(candidateName, position) {
+  var allCands = getAllCandidates();
+  var c = allCands.find(function(x){ return x.candidate === candidateName && x.position === position; });
+  if (!c) return;
+
+  // Navigate to the right panel, then scroll to the candidate
+  if (position === 'NY GOV') {
+    renderStatewidePanel('NY GOV', 'Governor', GOV_CANDIDATES);
+  } else if (position === 'NY COMP') {
+    renderStatewidePanel('NY COMP', 'Comptroller', COMP_CANDIDATES);
+  } else if (position === 'NY AG') {
+    renderStatewidePanel('NY AG', 'Attorney General', AG_CANDIDATES);
+  } else if (position === 'NYC CD03') {
+    renderCD03Panel();
+  } else if (/^AD\d+$/i.test(position)) {
+    var asmNum = parseInt(position.replace(/^AD0*/i,''), 10);
+    currentAssemblyDistrict = asmNum;
+    if (!assemblyVisible) {
+      assemblyVisible = true;
+      document.getElementById('assemblyToggle').classList.add('active');
+      if (assemblyLayer) assemblyLayer.addTo(mapObj);
+      else document.getElementById('assemblyToggle').click();
+      updateLayerPriority();
+    }
+    renderAssemblyPanel();
+  } else if (/^SD\d+$/i.test(position)) {
+    var senNum = parseInt(position.replace(/^SD0*/i,''), 10);
+    currentSenateDistrict = senNum;
+    if (!senateVisible) {
+      senateVisible = true;
+      document.getElementById('senateToggle').classList.add('active');
+      if (senateLayer) senateLayer.addTo(mapObj);
+      else document.getElementById('senateToggle').click();
+      updateLayerPriority();
+    }
+    renderSenatePanel();
+  } else if (/^NY\d+$/i.test(position)) {
+    currentPos = position;
+    if (!congVisible) {
+      congVisible = true;
+      document.getElementById('congToggle').classList.add('active');
+      geoLayer.addTo(mapObj);
+      updateLayerPriority();
+    }
+    renderPanel();
+  }
+  // Scroll to the candidate after render
+  setTimeout(function() { openCandidateInPanel(candidateName); }, 80);
 }
 
 function renderActivePanel() {
