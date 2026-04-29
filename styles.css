@@ -619,3 +619,98 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   white-space: nowrap;
   line-height: 1;
 }
+
+/* ── Compare / Similarity feature ── */
+#panel-back-row {
+  padding: 4px 0 2px 0;
+}
+#panel-back-btn {
+  background: none;
+  border: none;
+  color: var(--gold);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 2px 0;
+  opacity: 0.85;
+}
+#panel-back-btn:hover { opacity: 1; }
+
+.compare-btn {
+  display: inline-block;
+  margin-top: 5px;
+  background: none;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  cursor: pointer;
+  border-radius: 2px;
+  opacity: 0.8;
+  transition: opacity .15s;
+}
+.compare-btn:hover { opacity: 1; }
+
+.similarity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+}
+.similarity-table thead th {
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: 0.58rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 6px;
+}
+.similarity-row {
+  border-bottom: 1px solid rgba(200,191,170,0.2);
+  transition: background .1s;
+}
+.similarity-row:hover { background: rgba(242,169,0,0.06); }
+.similarity-row td {
+  padding: 6px 6px;
+  vertical-align: middle;
+  color: var(--ink);
+}
+.similarity-name-btn {
+  background: none;
+  border: none;
+  color: var(--gold);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.similarity-name-btn:hover { opacity: 0.75; }
+.sim-shared {
+  text-align: center;
+  color: var(--muted);
+}
+.sim-pct {
+  min-width: 70px;
+  position: relative;
+}
+.sim-pct-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: rgba(242,169,0,0.18);
+  border-radius: 1px;
+  transition: width .3s;
+}
+.sim-pct span {
+  position: relative;
+  z-index: 1;
+  padding-left: 4px;
+}
