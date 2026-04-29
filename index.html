@@ -663,6 +663,12 @@ function makeCandCol(c, showDistrictBadge) {
     ballotLabel.textContent = 'Failed to Make Ballot';
     hdrTop.appendChild(ballotLabel);
   }
+  if ((c.campaignStatus || '').toLowerCase() === 'won') {
+    var wonLabel = document.createElement('span');
+    wonLabel.className = 'badge-won';
+    wonLabel.textContent = 'Won';
+    hdrTop.appendChild(wonLabel);
+  }
 
   var toggle = document.createElement('span');
   toggle.className = 'cand-toggle';
