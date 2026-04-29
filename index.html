@@ -2086,19 +2086,22 @@ function renderSimilarityTable(candidate) {
   var myNames = candidate.endorsements.map(function(e){ return e.name; }).filter(Boolean);
   var mySet   = {};
   myNames.forEach(function(n){ mySet[n] = true; });
-  var total   = myNames.length;
 
   var rows = [];
   getAllCandidates().forEach(function(other) {
     if (other.candidate === candidate.candidate && other.position === candidate.position) return;
     var shared = other.endorsements.filter(function(e){ return e.name && mySet[e.name]; });
     if (!shared.length) return;
+    // Jaccard similarity: shared / union of both endorser sets
+    var otherNames = other.endorsements.map(function(e){ return e.name; }).filter(Boolean);
+    var unionCount = myNames.length;
+    otherNames.forEach(function(n){ if (!mySet[n]) unionCount++; });
     rows.push({
       candidate: other.candidate,
       position:  other.position,
       party:     other.party,
       shared:    shared.length,
-      pct:       Math.round(shared.length / total * 100),
+      pct:       Math.round(shared.length / unionCount * 100),
       sharedNames: shared.map(function(e){ return e.name; }).sort()
     });
   });
@@ -2173,6 +2176,13 @@ function navigateToCandidate(candidateName, position) {
   var allCands = getAllCandidates();
   var c = allCands.find(function(x){ return x.candidate === candidateName && x.position === position; });
   if (!c) return;
+
+  // Clear all district state upfront — each branch sets only what it needs
+  currentPos              = null;
+  currentAssemblyDistrict = null;
+  currentSenateDistrict   = null;
+  currentCD03             = false;
+  currentStatewide        = null;
 
   // Navigate to the right panel, then scroll to the candidate
   if (position === 'NY GOV') {
