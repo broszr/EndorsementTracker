@@ -2211,27 +2211,35 @@ function navigateToCandidate(candidateName, position) {
     renderCD03Panel();
   } else if (/^AD\d+$/i.test(position)) {
     var asmNum = parseInt(position.replace(/^AD0*/i,''), 10);
-    if (!asmNum || isNaN(asmNum)) return;
-    currentAssemblyDistrict = asmNum;
+    if (isNaN(asmNum)) return;
     if (!assemblyVisible) {
       assemblyVisible = true;
       document.getElementById('assemblyToggle').classList.add('active');
-      if (assemblyLayer) assemblyLayer.addTo(mapObj);
-      else document.getElementById('assemblyToggle').click();
+      if (assemblyLayer) {
+        assemblyLayer.addTo(mapObj);
+      } else {
+        document.getElementById('assemblyToggle').click();
+      }
       updateLayerPriority();
     }
+    // Set AFTER layer activation so clearAssemblySelection inside toggle doesn't wipe it
+    currentAssemblyDistrict = asmNum;
     renderAssemblyPanel();
   } else if (/^SD\d+$/i.test(position)) {
     var senNum = parseInt(position.replace(/^SD0*/i,''), 10);
-    if (!senNum || isNaN(senNum)) return;
-    currentSenateDistrict = senNum;
+    if (isNaN(senNum)) return;
     if (!senateVisible) {
       senateVisible = true;
       document.getElementById('senateToggle').classList.add('active');
-      if (senateLayer) senateLayer.addTo(mapObj);
-      else document.getElementById('senateToggle').click();
+      if (senateLayer) {
+        senateLayer.addTo(mapObj);
+      } else {
+        document.getElementById('senateToggle').click();
+      }
       updateLayerPriority();
     }
+    // Set AFTER layer activation so clearSenateSelection inside toggle doesn't wipe it
+    currentSenateDistrict = senNum;
     renderSenatePanel();
   } else if (/^NY\d+$/i.test(position)) {
     currentPos = position;
