@@ -349,6 +349,7 @@ function initMap() {
 
   /* Shore as base layer */
   shoreLayer = L.geoJSON(SHORE_GEOJSON, {
+    smoothFactor: 0,
     style: function() {
       return {color:'#6b7c6e', fillColor:'#f5f0e8', fillOpacity:1, weight:1.2, opacity:0.7};
     },
@@ -357,6 +358,7 @@ function initMap() {
 
   /* Parks layer — permanent, above shore, below all district layers */
   var parksLayer = L.geoJSON(PARKS_GEOJSON, {
+    smoothFactor: 0,
     style: function() {
       return {color:'#4a5e4d', fillColor:'#197352', fillOpacity:0.50, weight:1, opacity:0.8};
     },
@@ -442,6 +444,7 @@ function initMap() {
 
   /* Congressional layer — toggleable */
   geoLayer = L.geoJSON(CONGRESSIONAL_GEOJSON, {
+    smoothFactor: 0,
     style: function(feature) { return getCongStyle(feature, false); },
     onEachFeature: function(feature, fl) {
       var num = parseInt(feature.properties.District, 10);
@@ -1020,6 +1023,7 @@ function highlightEndorserDistricts(endorserName) {
       return asmPositions[pos];
     });
     endorserAsmHighlight = L.geoJSON({type:'FeatureCollection', features: asmFeats}, {
+      smoothFactor: 0,
       style: function() { return {color:'#000000',fillColor:'#b8860b',fillOpacity:0.4,weight:2.5,opacity:1,dashArray:''}; },
       interactive: false
     }).addTo(mapObj);
@@ -1036,6 +1040,7 @@ function highlightEndorserDistricts(endorserName) {
     if (!window._endorserSenateHL) window._endorserSenateHL = null;
     if (window._endorserSenateHL) { mapObj.removeLayer(window._endorserSenateHL); }
     window._endorserSenateHL = L.geoJSON({type:'FeatureCollection',features:senateFeats},{
+      smoothFactor: 0,
       style:function(){return {color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.32,weight:2.5,opacity:1,dashArray:'6,3'};},
       interactive: false
     }).addTo(mapObj);
@@ -1051,6 +1056,7 @@ function highlightEndorserDistricts(endorserName) {
   if (window._endorserCD03HL) { mapObj.removeLayer(window._endorserCD03HL); window._endorserCD03HL = null; }
   if (cd03Endorsed) {
     window._endorserCD03HL = L.geoJSON(CD03_GEOJSON, {
+      smoothFactor: 0,
       style: function() { return {color:'#ffffff',fillColor:'#b8860b',fillOpacity:0.55,weight:2.5,opacity:1,dashArray:''}; },
       interactive: false
     }).addTo(mapObj);
@@ -1258,6 +1264,7 @@ function initAssemblyOverlay() {
     if (assemblyVisible) {
       if (!assemblyLayer) {
         assemblyLayer = L.geoJSON(ASSEMBLY_GEOJSON, {
+          smoothFactor: 0,
           style: function(feature) { return getAsmStyle(feature, false); },
           onEachFeature: function(feature, layer) {
             var num = parseInt(feature.properties.D, 10);
@@ -1432,6 +1439,7 @@ function initSenateOverlay() {
     if (senateVisible) {
       if (!senateLayer) {
         senateLayer = L.geoJSON(SENATE_GEOJSON, {
+          smoothFactor: 0,
           style: function(feature) { return getSenateStyle(feature, false); },
           onEachFeature: function(feature, layer) {
             var num = parseInt(feature.properties.D, 10);
@@ -1932,6 +1940,7 @@ function selectSearchDistrict(r) {
     renderCD03Panel();
     if (window._selectedCD03Layer) { mapObj.removeLayer(window._selectedCD03Layer); }
     window._selectedCD03Layer = L.geoJSON(CD03_GEOJSON, {
+      smoothFactor: 0,
       style: function() { return {color:'#ffffff', fillColor:'#b8860b', fillOpacity:0.55, weight:2.5, opacity:1, dashArray:''}; },
       interactive: false
     }).addTo(mapObj);
@@ -2029,7 +2038,8 @@ function captureState() {
     panelSubtitle:     document.getElementById('panel-subtitle').innerHTML,
     filterVisible:     document.getElementById('filter-bar').classList.contains('visible'),
     bannerVisible:     document.getElementById('endorser-banner').classList.contains('visible'),
-    bannerText:        document.getElementById('banner-text').textContent
+    bannerText:        document.getElementById('banner-text').textContent,
+    panelCollapsed:    document.getElementById('side-panel').classList.contains('collapsed')
   };
 }
 
@@ -2059,6 +2069,24 @@ function navigateBack() {
     document.getElementById('endorser-banner').classList.remove('visible');
   }
   document.getElementById('panel-back-row').style.display = navHistory.length ? '' : 'none';
+
+  // Restore panel collapsed state
+  var sidePanel = document.getElementById('side-panel');
+  var collapseBtn = document.getElementById('panel-collapse-btn');
+  if (s.panelCollapsed) {
+    sidePanel.classList.add('collapsed');
+    collapseBtn.textContent = '▴';
+  } else {
+    sidePanel.classList.remove('collapsed');
+    collapseBtn.textContent = '▾';
+  }
+
+  // Reset all compare buttons to default state (Back always returns to candidate list view)
+  document.querySelectorAll('.compare-btn').forEach(function(b) {
+    b.classList.remove('compare-btn-active');
+    b.textContent = 'Compare';
+  });
+
   // Re-attach chip click listeners lost when innerHTML was restored
   document.querySelectorAll('.chip[data-endorser]').forEach(function(chip) {
     var name = chip.dataset.endorser;
@@ -2077,18 +2105,30 @@ function navigateBack() {
       renderPanel();
     });
   });
-  // Re-attach compare button listeners
+
+  // Re-attach compare button listeners with full toggle logic
   document.querySelectorAll('.compare-btn[data-candidate]').forEach(function(btn) {
     var candidateName = btn.dataset.candidate;
-    var allCands = CANDIDATES.concat(GOV_CANDIDATES, COMP_CANDIDATES, AG_CANDIDATES, CD03_CANDIDATES, ASSEMBLY_CANDIDATES, SENATE_CANDIDATES);
-    var c = allCands.find(function(x) { return x.candidate === candidateName; });
-    if (c) {
-      btn.addEventListener('click', function(ev) {
-        ev.stopPropagation();
+    var candidatePos  = btn.dataset.position;
+    var allCands = getAllCandidates();
+    var c = allCands.find(function(x) { return x.candidate === candidateName && x.position === candidatePos; });
+    if (!c) return;
+    btn.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      var isActive = btn.classList.contains('compare-btn-active');
+      document.querySelectorAll('.compare-btn-active').forEach(function(b) {
+        b.classList.remove('compare-btn-active');
+        b.textContent = 'Compare';
+      });
+      if (isActive) {
+        renderActivePanel();
+      } else {
+        btn.classList.add('compare-btn-active');
+        btn.textContent = 'Close';
         pushHistory();
         renderSimilarityTable(c);
-      });
-    }
+      }
+    });
   });
 }
 
