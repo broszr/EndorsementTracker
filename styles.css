@@ -55,6 +55,7 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
 .cand-th-name{font-family:'DM Serif Display',serif;font-size:0.98rem;line-height:1.3;flex:1;}
 .cand-th-meta{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;}
 .cand-th-count{font-size:0.78rem;color:#b3875a;letter-spacing:.04em;}
+.cand-count-row{display:flex;align-items:center;gap:8px;margin-top:2px;}
 .endorser-wrap{display:flex;flex-direction:column;gap:2px;}
 .endorser-cat-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);line-height:1;}
 .endorser-cat-header{font-size:0.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink);line-height:1;margin-top:8px;margin-bottom:3px;padding-bottom:2px;border-bottom:1px solid var(--border);}
@@ -639,7 +640,6 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
 
 .compare-btn {
   display: inline-block;
-  margin-top: 5px;
   background: none;
   border: 1px solid var(--gold);
   color: var(--ink);
