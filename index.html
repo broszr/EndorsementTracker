@@ -708,11 +708,26 @@ function makeCandCol(c, showDistrictBadge) {
   if (c.endorsements.length > 0) {
     var compareBtn = document.createElement('button');
     compareBtn.className = 'compare-btn';
+    compareBtn.dataset.candidate = c.candidate;
+    compareBtn.dataset.position  = c.position;
     compareBtn.textContent = 'Compare';
     compareBtn.addEventListener('click', function(ev) {
       ev.stopPropagation();
-      pushHistory();
-      renderSimilarityTable(c);
+      var isActive = compareBtn.classList.contains('compare-btn-active');
+      // Deactivate any other active compare buttons
+      document.querySelectorAll('.compare-btn-active').forEach(function(b) {
+        b.classList.remove('compare-btn-active');
+        b.textContent = 'Compare';
+      });
+      if (isActive) {
+        // Toggle off — return to candidate list without adding to history
+        renderActivePanel();
+      } else {
+        compareBtn.classList.add('compare-btn-active');
+        compareBtn.textContent = 'Close';
+        pushHistory();
+        renderSimilarityTable(c);
+      }
     });
     hdr.appendChild(compareBtn);
   }
@@ -2067,7 +2082,8 @@ function navigateBack() {
 }
 
 function getAllCandidates() {
-  return CANDIDATES.concat(GOV_CANDIDATES, COMP_CANDIDATES, AG_CANDIDATES, CD03_CANDIDATES, ASSEMBLY_CANDIDATES, SENATE_CANDIDATES);
+  return CANDIDATES.concat(GOV_CANDIDATES, COMP_CANDIDATES, AG_CANDIDATES, CD03_CANDIDATES, ASSEMBLY_CANDIDATES, SENATE_CANDIDATES)
+    .filter(function(c) { return c && c.candidate && c.position; });
 }
 
 function getPositionLabel(pos) {
@@ -2195,6 +2211,7 @@ function navigateToCandidate(candidateName, position) {
     renderCD03Panel();
   } else if (/^AD\d+$/i.test(position)) {
     var asmNum = parseInt(position.replace(/^AD0*/i,''), 10);
+    if (!asmNum || isNaN(asmNum)) return;
     currentAssemblyDistrict = asmNum;
     if (!assemblyVisible) {
       assemblyVisible = true;
@@ -2206,6 +2223,7 @@ function navigateToCandidate(candidateName, position) {
     renderAssemblyPanel();
   } else if (/^SD\d+$/i.test(position)) {
     var senNum = parseInt(position.replace(/^SD0*/i,''), 10);
+    if (!senNum || isNaN(senNum)) return;
     currentSenateDistrict = senNum;
     if (!senateVisible) {
       senateVisible = true;
