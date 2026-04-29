@@ -714,3 +714,9 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   z-index: 1;
   padding-left: 4px;
 }
+
+.compare-btn-active {
+  background: var(--gold);
+  color: #0f0e0d;
+  opacity: 1;
+}
