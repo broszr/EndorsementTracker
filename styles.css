@@ -37,7 +37,6 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
 .badge{font-size:0.65rem;padding:1px 5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid;white-space:nowrap;}
 .badge-dem{background:#00AEF3;border-color:#00AEF3;color:var(--cream);}
 .badge-rep{background:#E81B23;border-color:#E81B23;color:var(--cream);}
-.badge-wfp{border-color:#b8860b;color:#b8860b;}
 .badge-ind{background:#555;border-color:#555;color:var(--cream);}
 .badge-inc{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 .badge-open{background:#197352;color:#ffffff;border-color:#197352;}
@@ -627,7 +626,7 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
 #panel-back-btn {
   background: none;
   border: none;
-  color: #FFFFFF;
+  color:var(--cream);
   font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
   letter-spacing: .06em;
@@ -643,7 +642,7 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   margin-top: 5px;
   background: none;
   border: 1px solid var(--gold);
-  color: var(--gold);
+  color: var(--ink);
   font-family: 'DM Mono', monospace;
   font-size: 0.58rem;
   letter-spacing: .07em;
@@ -684,7 +683,7 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
 .similarity-name-btn {
   background: none;
   border: none;
-  color: var(--gold);
+  color: var(--ink);
   font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
   cursor: pointer;
