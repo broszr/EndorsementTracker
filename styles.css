@@ -627,7 +627,7 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
 #panel-back-btn {
   background: none;
   border: none;
-  color: var(--gold);
+  color: #FFFFFF;
   font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
   letter-spacing: .06em;
