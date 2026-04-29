@@ -1619,17 +1619,6 @@ function clearAllSelections() {
 
 
 /* ── Shore base layer ── */
-var SHORE_GEOJSON = (function(){
-  var S=10000;
-  function dr(enc){
-    var pts=[],lng=enc[0][0]/S,lat=enc[0][1]/S;pts.push([lng,lat]);
-    for(var i=1;i<enc.length;i++){lng+=enc[i][0]/S;lat+=enc[i][1]/S;pts.push([Math.round(lng*S)/S,Math.round(lat*S)/S]);}
-    return pts;
-  }
-  var coords=SHORE_DELTA.map(function(poly){return poly.map(dr);});
-  return {type:'Feature',geometry:{type:'MultiPolygon',coordinates:coords},properties:{}};
-})();
-
 var shoreLayer = null;
 var congVisible = false;
 var congLayer = null;
