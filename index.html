@@ -2225,6 +2225,8 @@ function navigateToCandidate(candidateName, position) {
     renderStatewidePanel('NY AG', 'Attorney General', AG_CANDIDATES);
   } else if (position === 'NYC CD03') {
     renderCD03Panel();
+    var cd03Bounds = L.geoJSON(CD03_GEOJSON).getBounds();
+    flyToDistrict(cd03Bounds);
   } else if (/^AD\d+$/i.test(position)) {
     var asmNum = parseInt(position.replace(/^AD0*/i,''), 10);
     if (isNaN(asmNum)) return;
@@ -2241,6 +2243,13 @@ function navigateToCandidate(candidateName, position) {
     // Set AFTER layer activation so clearAssemblySelection inside toggle doesn't wipe it
     currentAssemblyDistrict = asmNum;
     renderAssemblyPanel();
+    if (assemblyLayer) {
+      assemblyLayer.eachLayer(function(l) {
+        if (parseInt(l.feature.properties.D, 10) === asmNum) {
+          flyToDistrict(l.getBounds());
+        }
+      });
+    }
   } else if (/^SD\d+$/i.test(position)) {
     var senNum = parseInt(position.replace(/^SD0*/i,''), 10);
     if (isNaN(senNum)) return;
@@ -2257,6 +2266,13 @@ function navigateToCandidate(candidateName, position) {
     // Set AFTER layer activation so clearSenateSelection inside toggle doesn't wipe it
     currentSenateDistrict = senNum;
     renderSenatePanel();
+    if (senateLayer) {
+      senateLayer.eachLayer(function(l) {
+        if (parseInt(l.feature.properties.D, 10) === senNum) {
+          flyToDistrict(l.getBounds());
+        }
+      });
+    }
   } else if (/^NY\d+$/i.test(position)) {
     currentPos = position;
     if (!congVisible) {
@@ -2266,6 +2282,12 @@ function navigateToCandidate(candidateName, position) {
       updateLayerPriority();
     }
     renderPanel();
+    var distNum = parseInt(position.replace(/^NY0*/i,''), 10);
+    geoLayer.eachLayer(function(l) {
+      if (parseInt(l.feature.properties.District, 10) === distNum) {
+        flyToDistrict(l.getBounds());
+      }
+    });
   }
   // Scroll to the candidate after render
   setTimeout(function() { openCandidateInPanel(candidateName); }, 80);
