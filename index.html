@@ -2209,6 +2209,24 @@ function navigateToCandidate(candidateName, position) {
   var c = allCands.find(function(x){ return x.candidate === candidateName && x.position === position; });
   if (!c) return;
 
+  // Clear all existing district highlights before navigating
+  if (selectedCongLayer) {
+    selectedCongLayer.setStyle(getCongStyle(selectedCongLayer.feature, false));
+    selectedCongLayer = null;
+  }
+  if (selectedAssemblyLayer) {
+    selectedAssemblyLayer.setStyle(getAsmStyle(selectedAssemblyLayer.feature, false));
+    selectedAssemblyLayer = null;
+  }
+  if (selectedSenateLayer) {
+    selectedSenateLayer.setStyle(getSenateStyle(selectedSenateLayer.feature, false));
+    selectedSenateLayer = null;
+  }
+  if (window._selectedCD03Layer) {
+    mapObj.removeLayer(window._selectedCD03Layer);
+    window._selectedCD03Layer = null;
+  }
+
   // Clear all district state upfront — each branch sets only what it needs
   currentPos              = null;
   currentAssemblyDistrict = null;
@@ -2246,6 +2264,8 @@ function navigateToCandidate(candidateName, position) {
     if (assemblyLayer) {
       assemblyLayer.eachLayer(function(l) {
         if (parseInt(l.feature.properties.D, 10) === asmNum) {
+          selectedAssemblyLayer = l;
+          l.setStyle(getAsmStyle(l.feature, true));
           flyToDistrict(l.getBounds());
         }
       });
@@ -2269,6 +2289,8 @@ function navigateToCandidate(candidateName, position) {
     if (senateLayer) {
       senateLayer.eachLayer(function(l) {
         if (parseInt(l.feature.properties.D, 10) === senNum) {
+          selectedSenateLayer = l;
+          l.setStyle(getSenateStyle(l.feature, true));
           flyToDistrict(l.getBounds());
         }
       });
@@ -2285,6 +2307,8 @@ function navigateToCandidate(candidateName, position) {
     var distNum = parseInt(position.replace(/^NY0*/i,''), 10);
     geoLayer.eachLayer(function(l) {
       if (parseInt(l.feature.properties.District, 10) === distNum) {
+        selectedCongLayer = l;
+        l.setStyle(getCongStyle(l.feature, true));
         flyToDistrict(l.getBounds());
       }
     });
