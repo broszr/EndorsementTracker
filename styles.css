@@ -730,7 +730,7 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   font-weight: 400;
   letter-spacing: .04em;
   text-transform: uppercase;
-  color: #2a3d2c;
+  color: var(--ink);
   text-shadow: 0 0 3px rgba(245,240,232,0.9), 0 0 6px rgba(245,240,232,0.9);
   white-space: nowrap;
   pointer-events: none;
