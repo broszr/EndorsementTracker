@@ -476,7 +476,7 @@ function initMap() {
         countiesLayer = L.geoJSON(COUNTIES_GEOJSON, {
           smoothFactor: 0,
           style: function() {
-            return {color:'#99058D', fillColor:'transparent', fillOpacity:0, weight:1.5, opacity:0.8};
+            return {color:'#99058D', fillColor:'transparent', fillOpacity:0, weight:1.5, opacity:0.8, dashArray:'2,4'};
           },
           interactive: false,
           onEachFeature: function(feature, layer) {
