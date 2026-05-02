@@ -745,12 +745,12 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   background: transparent;
   border: none;
   box-shadow: none;
-  font-family: 'DM Serif Display', serif;
+  font-family:'DM Mono',monospace;
   font-size: 0.6rem;
   font-weight: 400;
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: #2a3d2c;
+  color: var(--ink);
   text-shadow: 0 0 4px rgba(245,240,232,0.95), 0 0 8px rgba(245,240,232,0.95);
   white-space: nowrap;
   pointer-events: none;
