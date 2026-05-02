@@ -21,6 +21,8 @@
 <link rel="stylesheet" href="styles.css"/>
   <script src="cd03.js"></script>
   <script src="parks.js"></script>
+  <script src="neighborhoods.js"></script>
+  <script src="counties.js"></script>
   <script src="congressional.js"></script>
   <script src="asm-geo.js"></script>
   <script src="senate-geo.js"></script>
@@ -28,13 +30,20 @@
 </head>
 <body>
 <header>
-  <div style="display:flex;align-items:center;">
+  <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;">
     <div class="header-title">New York <span>2026</span> Endorsement Tracker</div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+      <div class="header-meta">Map Guides and Orientation</div>
+      <div class="header-toggles">
+        <button class="overlay-toggle" id="howToToggle">How To</button>
+        <button class="overlay-toggle" id="neighborhoodsToggle">Neighborhoods</button>
+        <button class="overlay-toggle" id="countiesToggle">Counties</button>
+      </div>
+    </div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:6px;">
-    <div class="header-meta">Toggle a layer · click a district to explore</div>
+    <div class="header-meta">Toggle Layers</div>
     <div class="header-toggles">
-      <button class="overlay-toggle" id="howToToggle">How To</button>
       <button class="overlay-toggle" id="congToggle">Congressional</button>
       <button class="overlay-toggle" id="senateToggle">Senate</button>
       <button class="overlay-toggle" id="assemblyToggle">Assembly</button>
@@ -388,6 +397,110 @@ function initMap() {
 
   mapObj.on('zoomend', updateParkLabels);
   setTimeout(updateParkLabels, 300);
+
+  /* Neighborhoods layer — above parks, below all district layers */
+  var NEIGHBORHOOD_LABEL_ZOOM = 12;
+
+  function updateNeighborhoodLabels() {
+    if (!neighborhoodsLayer) return;
+    var z = mapObj.getZoom();
+    neighborhoodsLayer.eachLayer(function(layer) {
+      if (!layer._nbrName) return;
+      var tt = layer.getTooltip();
+      if (!tt) return;
+      if (z >= NEIGHBORHOOD_LABEL_ZOOM) {
+        if (!tt.isOpen()) layer.openTooltip();
+      } else {
+        if (tt.isOpen()) layer.closeTooltip();
+      }
+    });
+  }
+
+  document.getElementById('neighborhoodsToggle').addEventListener('click', function() {
+    neighborhoodsVisible = !neighborhoodsVisible;
+    this.classList.toggle('active', neighborhoodsVisible);
+    if (neighborhoodsVisible) {
+      if (!neighborhoodsLayer) {
+        neighborhoodsLayer = L.geoJSON(NEIGHBORHOODS_GEOJSON, {
+          smoothFactor: 0,
+          style: function() {
+            return {color:'#2a3d2c', fillColor:'transparent', fillOpacity:0, weight:1, opacity:0.7};
+          },
+          interactive: false,
+          onEachFeature: function(feature, layer) {
+            var name = feature.properties.NTAName;
+            if (!name) return;
+            layer._nbrName = name;
+            layer.bindTooltip(name, {
+              permanent: true,
+              className: 'neighborhood-label',
+              direction: 'center',
+              offset: [0, 0]
+            });
+          }
+        });
+      }
+      neighborhoodsLayer.addTo(mapObj);
+      enforceLayerOrder();
+      updateNeighborhoodLabels();
+    } else {
+      if (neighborhoodsLayer) mapObj.removeLayer(neighborhoodsLayer);
+    }
+  });
+
+  mapObj.on('zoomend', updateNeighborhoodLabels);
+
+  /* Counties layer — above neighborhoods, below all district layers */
+  var COUNTY_LABEL_ZOOM = 8;
+
+  function updateCountyLabels() {
+    if (!countiesLayer) return;
+    var z = mapObj.getZoom();
+    countiesLayer.eachLayer(function(layer) {
+      if (!layer._countyName) return;
+      var tt = layer.getTooltip();
+      if (!tt) return;
+      if (z >= COUNTY_LABEL_ZOOM) {
+        if (!tt.isOpen()) layer.openTooltip();
+      } else {
+        if (tt.isOpen()) layer.closeTooltip();
+      }
+    });
+  }
+
+  document.getElementById('countiesToggle').addEventListener('click', function() {
+    countiesVisible = !countiesVisible;
+    this.classList.toggle('active', countiesVisible);
+    if (countiesVisible) {
+      if (!countiesLayer) {
+        countiesLayer = L.geoJSON(COUNTIES_GEOJSON, {
+          smoothFactor: 0,
+          style: function() {
+            return {color:'#2a3d2c', fillColor:'transparent', fillOpacity:0, weight:1.5, opacity:0.8};
+          },
+          interactive: false,
+          onEachFeature: function(feature, layer) {
+            var name = feature.properties.NAME;
+            if (!name) return;
+            layer._countyName = name;
+            layer.bindTooltip(name, {
+              permanent: true,
+              className: 'county-label',
+              direction: 'center',
+              offset: [0, 0]
+            });
+          }
+        });
+      }
+      countiesLayer.addTo(mapObj);
+      enforceLayerOrder();
+      updateCountyLabels();
+    } else {
+      if (countiesLayer) mapObj.removeLayer(countiesLayer);
+    }
+  });
+
+  mapObj.on('zoomend', updateCountyLabels);
 
   /* City labels — above shore, below district layers */
   var CITIES = [
@@ -1228,6 +1341,8 @@ function updateLayerPriority() {
 
 /* Z-order: congressional (bottom) → senate → assembly (top) */
 function enforceLayerOrder() {
+  if (neighborhoodsLayer && mapObj.hasLayer(neighborhoodsLayer)) neighborhoodsLayer.bringToFront();
+  if (countiesLayer && mapObj.hasLayer(countiesLayer)) countiesLayer.bringToFront();
   if (geoLayer && mapObj.hasLayer(geoLayer)) geoLayer.bringToFront();
   if (senateLayer && mapObj.hasLayer(senateLayer)) senateLayer.bringToFront();
   if (assemblyLayer && mapObj.hasLayer(assemblyLayer)) assemblyLayer.bringToFront();
@@ -1590,6 +1705,10 @@ function clearAllSelections() {
 
 /* ── Shore base layer ── */
 var shoreLayer = null;
+var neighborhoodsLayer = null;
+var neighborhoodsVisible = false;
+var countiesLayer = null;
+var countiesVisible = false;
 var congVisible = false;
 var congLayer = null;
 
