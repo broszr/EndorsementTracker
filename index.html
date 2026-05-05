@@ -42,7 +42,7 @@
     </div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:6px;">
-    <div class="header-meta">Toggle District Layers</div>
+    <div class="header-meta">Toggle Layers</div>
     <div class="header-toggles">
       <button class="overlay-toggle" id="congToggle">Congressional</button>
       <button class="overlay-toggle" id="senateToggle">Senate</button>
@@ -430,8 +430,23 @@ function initMap() {
           onEachFeature: function(feature, layer) {
             var name = feature.properties.NTAName;
             if (!name) return;
-            layer._nbrName = name;
-            layer.bindTooltip(name, {
+
+            // Exclude park neighborhoods
+            var EXCLUDED = [
+              'Prospect Park', 'Forest Park', 'Flushing Meadows-Corona Park',
+              'Central Park', 'Pelham Bay Park', 'Van Cortlandt Park'
+            ];
+            if (EXCLUDED.indexOf(name) > -1) return;
+
+            // Abbreviate all directional words
+            var label = name
+              .replace(/\bEast\b/g, 'E')
+              .replace(/\bWest\b/g, 'W')
+              .replace(/\bNorth\b/g, 'N')
+              .replace(/\bSouth\b/g, 'S');
+
+            layer._nbrName = label;
+            layer.bindTooltip(label, {
               permanent: true,
               className: 'neighborhood-label',
               direction: 'center',
@@ -476,7 +491,7 @@ function initMap() {
         countiesLayer = L.geoJSON(COUNTIES_GEOJSON, {
           smoothFactor: 0,
           style: function() {
-            return {color:'#99058D', fillColor:'transparent', fillOpacity:0, weight:1.5, opacity:0.8, dashArray:'1,8'};
+            return {color:'#2a3d2c', fillColor:'transparent', fillOpacity:0, weight:1.5, opacity:0.8};
           },
           interactive: false,
           onEachFeature: function(feature, layer) {
