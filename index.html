@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="styles.css"/>
   <script src="cd03.js"></script>
   <script src="parks.js"></script>
@@ -116,7 +117,6 @@
 // ── Google Sheets data source ──────────────────────────────────────
 var SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5dS_0mGq_7p86sHxQD-wa9ujhO9PCHQ6_xQZmx4ijAW-WLMDM3AMZ9JO9erhrjACm2lWHk34_XBFi/pub?output=csv&gid=0';
 
-var CANDIDATES_RAW = [];
 var CANDIDATES = [];
 var GOV_CANDIDATES = [];
 var COMP_CANDIDATES = [];
@@ -234,15 +234,9 @@ var currentStatewide = null; // 'gov' | 'comp' | 'ag' | null
 var selectedCongLayer = null;
 var currentParty = 'ALL';
 var currentEndorser = null;
-var cardN = 0;
 var mapObj = null;
 var geoLayer = null;
 
-function loadScript(src, cb) {
-  var s = document.createElement('script');
-  s.src = src; s.onload = cb;
-  document.head.appendChild(s);
-}
 
 function getCongStyle(feature, selected) {
   var dist = parseInt(feature.properties.District, 10);
@@ -307,10 +301,9 @@ function fetchSheetData(cb) {
       return r.text();
     })
     .then(function(text) {
-      CANDIDATES_RAW = parseSheetCSV(text);
       CANDIDATES = []; GOV_CANDIDATES = []; COMP_CANDIDATES = []; AG_CANDIDATES = []; CD03_CANDIDATES = [];
       ASSEMBLY_CANDIDATES = []; SENATE_CANDIDATES = [];
-      CANDIDATES_RAW.forEach(function(r) {
+      parseSheetCSV(text).forEach(function(r) {
         var pos = (r[0] || '').trim().toUpperCase();
         var obj = {position:pos, positionStatus:r[1], candidate:r[2],
           campaignStatus:r[3], party:r[4],
@@ -335,9 +328,7 @@ function fetchSheetData(cb) {
     });
 }
 
-loadScript('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js', function() {
-  fetchSheetData(bootApp);
-});
+fetchSheetData(bootApp);
 
 function initMap() {
   mapObj = L.map('map', {
@@ -1450,21 +1441,7 @@ function onAssemblyClick(districtNum, layer) {
   enforceLayerOrder();
 
   var pos = 'AD'+(districtNum<10?'00':districtNum<100?'0':'')+districtNum;
-
   var cands = ASSEMBLY_CANDIDATES.filter(function(c){return c.position===pos;});
-  var titleEl = document.getElementById('panel-title');
-  titleEl.innerHTML='';
-  titleEl.appendChild(document.createTextNode('Assembly District '+districtNum));
-  var isOpen = cands.some(function(c){return c.positionStatus==='Open Seat';});
-  var asmIncumbent=cands.find(function(c){return c.positionStatus==='Incumbent';});
-  var asmSubEl=document.getElementById('panel-subtitle');
-  asmSubEl.innerHTML='';
-  if (isOpen) {
-    var ob=document.createElement('span');
-    ob.className='badge badge-open';ob.textContent='Open Seat';asmSubEl.appendChild(ob);
-  } else {
-    asmSubEl.textContent=asmIncumbent?asmIncumbent.candidate:'';
-  }
   var hasOther=cands.some(function(c){return c.party!=='Democratic Party'&&c.party!=='Republican Party';});
   document.querySelector('.filter-chip[data-party="other"]').style.display=hasOther?'':'none';
   currentParty='ALL';
@@ -1607,21 +1584,7 @@ function onSenateClick(districtNum, layer) {
   enforceLayerOrder();
 
   var pos = 'SD'+(districtNum<10?'0':'')+districtNum;
-
   var cands = SENATE_CANDIDATES.filter(function(c){return c.position===pos;});
-  var titleEl = document.getElementById('panel-title');
-  titleEl.innerHTML='';
-  titleEl.appendChild(document.createTextNode('Senate District '+districtNum));
-  var isOpen = cands.some(function(c){return c.positionStatus==='Open Seat';});
-  var senIncumbent=cands.find(function(c){return c.positionStatus==='Incumbent';});
-  var senSubEl=document.getElementById('panel-subtitle');
-  senSubEl.innerHTML='';
-  if (isOpen) {
-    var ob=document.createElement('span');
-    ob.className='badge badge-open';ob.textContent='Open Seat';senSubEl.appendChild(ob);
-  } else {
-    senSubEl.textContent=senIncumbent?senIncumbent.candidate:'';
-  }
   var hasOther=cands.some(function(c){return c.party!=="Democratic Party"&&c.party!=="Republican Party";});
   document.querySelector(".filter-chip[data-party=\"other\"]").style.display=hasOther?"":"none";
   currentParty='ALL';
@@ -1732,7 +1695,6 @@ var neighborhoodsVisible = false;
 var countiesLayer = null;
 var countiesVisible = false;
 var congVisible = false;
-var congLayer = null;
 
 /* ── Map Search ── */
 function positionSearchBar() {
