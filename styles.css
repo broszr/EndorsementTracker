@@ -64,6 +64,7 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
 .cand-td:last-child{border-right:none;}
 
 .cand-col-header-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;}
+.cand-col + .cand-col{border-top:1px solid var(--border);padding-top:10px;margin-top:4px;}
 .cand-toggle{font-size:0.85rem;color:var(--accent);flex-shrink:0;margin-left:6px;}
 .cand-endorser-list{display:none;padding:6px 10px;flex-direction:column;gap:4px;}
 .cand-endorser-list.open{display:flex;}
