@@ -1285,14 +1285,32 @@ function redrawEndorserOverlay(endorserName) {
   name.className = 'bubble-name';
   name.textContent = endorserName;
 
+  // Helper: given a candidate array and endorser name, return party breakdown string e.g. "(2D · 1R)"
+  function partyBreakdown(candArray, eName) {
+    var endorsed = candArray.filter(function(c) {
+      return c.endorsements.some(function(e) { return e.name === eName; });
+    });
+    if (!endorsed.length) return '';
+    var tally = {};
+    endorsed.forEach(function(c) {
+      var p = c.party || '';
+      var key = p === 'Democratic Party' ? 'D' : p === 'Republican Party' ? 'R' : 'I';
+      tally[key] = (tally[key] || 0) + 1;
+    });
+    var order = ['D', 'R', 'I'];
+    var breakdown = order.filter(function(k) { return tally[k]; })
+                         .map(function(k) { return tally[k] + k; });
+    return breakdown.length ? ' (' + breakdown.join(' · ') + ')' : '';
+  }
+
   var parts = [];
-  if (counts.govCount)    parts.push(counts.govCount + ' Gubernatorial');
-  if (counts.agCount)     parts.push(counts.agCount + ' Attorney General');
-  if (counts.compCount)   parts.push(counts.compCount + ' Comptroller');
-  if (counts.cd03Count)   parts.push('NYC Council District 3');
-  if (counts.congCount)   parts.push(counts.congCount + ' Congressional');
-  if (counts.senateCount) parts.push(counts.senateCount + ' Senate');
-  if (counts.asmCount)    parts.push(counts.asmCount + ' Assembly');
+  if (counts.govCount)    parts.push(counts.govCount + ' Gubernatorial' + partyBreakdown(GOV_CANDIDATES, endorserName));
+  if (counts.agCount)     parts.push(counts.agCount + ' Attorney General' + partyBreakdown(AG_CANDIDATES, endorserName));
+  if (counts.compCount)   parts.push(counts.compCount + ' Comptroller' + partyBreakdown(COMP_CANDIDATES, endorserName));
+  if (counts.cd03Count)   parts.push('NYC Council District 3' + partyBreakdown(CD03_CANDIDATES, endorserName));
+  if (counts.congCount)   parts.push(counts.congCount + ' Congressional' + partyBreakdown(CANDIDATES, endorserName));
+  if (counts.senateCount) parts.push(counts.senateCount + ' Senate' + partyBreakdown(SENATE_CANDIDATES, endorserName));
+  if (counts.asmCount)    parts.push(counts.asmCount + ' Assembly' + partyBreakdown(ASSEMBLY_CANDIDATES, endorserName));
 
   var count = document.createElement('div');
   count.className = 'bubble-count';
