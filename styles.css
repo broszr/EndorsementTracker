@@ -144,6 +144,11 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   border-top:1px solid rgba(0,0,0,.1);
   padding-top:6px;
 }
+.bubble-compare-btn {
+  margin-top: 8px;
+  width: 100%;
+  text-align: center;
+}
 
 /* Make SVG district fills fully hoverable (not just stroke) */
 .leaflet-interactive { pointer-events: all !important; outline: none !important; }
