@@ -1316,6 +1316,26 @@ function redrawEndorserOverlay(endorserName) {
   count.className = 'bubble-count';
   count.innerHTML = parts.join('<br>');
 
+  var bubbleCompareBtn = document.createElement('button');
+  bubbleCompareBtn.className = 'compare-btn bubble-compare-btn';
+  bubbleCompareBtn.textContent = 'Compare Endorsers';
+  bubbleCompareBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isActive = bubbleCompareBtn.classList.contains('compare-btn-active');
+    document.querySelectorAll('.bubble-compare-btn.compare-btn-active').forEach(function(b) {
+      b.classList.remove('compare-btn-active');
+      b.textContent = 'Compare Endorsers';
+    });
+    if (isActive) {
+      renderActivePanel();
+    } else {
+      bubbleCompareBtn.classList.add('compare-btn-active');
+      bubbleCompareBtn.textContent = 'Close';
+      pushHistory();
+      renderEndorserSimilarityTable(endorserName);
+    }
+  });
+
   var closeBtn = document.createElement('div');
   closeBtn.className = 'bubble-close';
   closeBtn.textContent = '✕';
@@ -1324,6 +1344,7 @@ function redrawEndorserOverlay(endorserName) {
   bubble.appendChild(label);
   bubble.appendChild(name);
   bubble.appendChild(count);
+  bubble.appendChild(bubbleCompareBtn);
   wrap.appendChild(bubble);
   wrap.appendChild(closeBtn);
 
@@ -2157,7 +2178,7 @@ function navigateBack() {
   // Reset all compare buttons to default state (Back always returns to candidate list view)
   document.querySelectorAll('.compare-btn').forEach(function(b) {
     b.classList.remove('compare-btn-active');
-    b.textContent = 'Compare';
+    b.textContent = b.classList.contains('bubble-compare-btn') ? 'Compare Endorsers' : 'Compare';
   });
 
   // Re-attach chip click listeners lost when innerHTML was restored
@@ -2436,6 +2457,129 @@ function navigateToCandidate(candidateName, position) {
   }
   // Scroll to the candidate after render
   setTimeout(function() { openCandidateInPanel(candidateName); }, 80);
+}
+
+function getAllEndorsers() {
+  // Build a map of endorserName -> Set of candidate keys they've endorsed
+  var endorserMap = {};
+  getAllCandidates().forEach(function(c) {
+    var candKey = c.candidate + '||' + c.position;
+    c.endorsements.forEach(function(e) {
+      if (!e.name) return;
+      if (!endorserMap[e.name]) endorserMap[e.name] = {};
+      endorserMap[e.name][candKey] = c;
+    });
+  });
+  return endorserMap;
+}
+
+function renderEndorserSimilarityTable(endorserName) {
+  var endorserMap = getAllEndorsers();
+  var myEndorsed = endorserMap[endorserName] || {};
+  var myKeys = Object.keys(myEndorsed);
+  var mySet = {};
+  myKeys.forEach(function(k) { mySet[k] = true; });
+  var total = myKeys.length;
+
+  if (!total) {
+    document.getElementById('candidates-list').innerHTML =
+      '<div class="no-results">No candidate data found for ' + endorserName + '.</div>';
+    return;
+  }
+
+  var rows = [];
+  Object.keys(endorserMap).forEach(function(otherName) {
+    if (otherName === endorserName) return;
+    var otherKeys = Object.keys(endorserMap[otherName]);
+    var sharedKeys = otherKeys.filter(function(k) { return mySet[k]; });
+    if (!sharedKeys.length) return;
+
+    // Jaccard: shared / union
+    var unionCount = myKeys.length;
+    otherKeys.forEach(function(k) { if (!mySet[k]) unionCount++; });
+    var pct = Math.round(sharedKeys.length / unionCount * 100);
+
+    // Get shared candidate labels
+    var sharedLabels = sharedKeys.map(function(k) {
+      return myEndorsed[k] ? myEndorsed[k].candidate : k.split('||')[0];
+    }).sort();
+
+    rows.push({
+      name: otherName,
+      shared: sharedKeys.length,
+      pct: pct,
+      sharedLabels: sharedLabels
+    });
+  });
+
+  rows.sort(function(a, b) { return b.pct - a.pct || b.shared - a.shared; });
+
+  // Render
+  document.getElementById('panel-title').textContent = endorserName;
+  document.getElementById('panel-subtitle').textContent = 'Endorser similarity';
+  document.getElementById('filter-bar').classList.add('visible');
+
+  var list = document.getElementById('candidates-list');
+  list.innerHTML = '';
+
+  if (!rows.length) {
+    list.innerHTML = '<div class="no-results">No endorsers share candidates with ' + endorserName + '.</div>';
+    return;
+  }
+
+  var table = document.createElement('table');
+  table.className = 'similarity-table';
+  table.innerHTML =
+    '<thead><tr>' +
+      '<th>Endorser</th>' +
+      '<th>Shared</th>' +
+      '<th>%</th>' +
+    '</tr></thead>';
+
+  var tbody = document.createElement('tbody');
+  rows.forEach(function(row) {
+    var tr = document.createElement('tr');
+    tr.className = 'similarity-row';
+
+    var tdName = document.createElement('td');
+    var nameBtn = document.createElement('button');
+    nameBtn.className = 'similarity-name-btn';
+    nameBtn.textContent = row.name;
+    nameBtn.addEventListener('click', function() {
+      pushHistory();
+      // Activate this endorser — same as clicking their chip
+      currentEndorser = row.name;
+      activateEndorserLayers(row.name);
+      document.getElementById('banner-text').textContent = 'Filtering by: ' + row.name;
+      document.getElementById('endorser-banner').classList.add('visible');
+      renderPanel();
+      redrawEndorserOverlay(row.name);
+    });
+    tdName.appendChild(nameBtn);
+
+    var tdShared = document.createElement('td');
+    tdShared.className = 'sim-shared';
+    tdShared.title = row.sharedLabels.join(', ');
+    tdShared.textContent = row.shared;
+
+    var tdPct = document.createElement('td');
+    tdPct.className = 'sim-pct';
+    var pctBar = document.createElement('div');
+    pctBar.className = 'sim-pct-bar';
+    pctBar.style.width = row.pct + '%';
+    var pctLabel = document.createElement('span');
+    pctLabel.textContent = row.pct + '%';
+    tdPct.appendChild(pctBar);
+    tdPct.appendChild(pctLabel);
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdShared);
+    tr.appendChild(tdPct);
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  list.appendChild(table);
 }
 
 function renderActivePanel() {
