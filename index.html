@@ -24,6 +24,7 @@
   <script src="parks.js"></script>
   <script src="neighborhoods.js"></script>
   <script src="counties.js"></script>
+  <script src="city-council.js"></script>
   <script src="congressional.js"></script>
   <script src="asm-geo.js"></script>
   <script src="senate-geo.js"></script>
@@ -39,6 +40,7 @@
         <button class="overlay-toggle" id="howToToggle">How To</button>
         <button class="overlay-toggle" id="neighborhoodsToggle">Neighborhoods</button>
         <button class="overlay-toggle" id="countiesToggle">Counties</button>
+        <button class="overlay-toggle" id="cityCouncilToggle">City Council</button>
       </div>
     </div>
   </div>
@@ -513,7 +515,69 @@ function initMap() {
     }
   });
 
+
   mapObj.on('zoomend', updateCountyLabels);
+
+  /* City Council layer — above counties, below all district layers */
+  var COUNCIL_LABEL_LOOKUP = {"42":{"l":"CD 42","z":14,"c":[-73.8657045,40.58736]},"45":{"l":"CD 45","z":13,"c":[-73.9418523,40.6313554]},"30":{"l":"CD 30","z":13,"c":[-73.893499,40.7195245]},"29":{"l":"CD 29","z":13,"c":[-73.8271346,40.697746]},"51":{"l":"CD 51","z":11,"c":[-74.1857068,40.5484404]},"6":{"l":"CD 6","z":14,"c":[-73.9751846,40.7804161]},"7":{"l":"CD 7","z":14,"c":[-73.9669652,40.8000153]},"48":{"l":"CD 48","z":13,"c":[-73.954382,40.5932632]},"46":{"l":"CD 46","z":14,"c":[-73.9061005,40.5961429]},"36":{"l":"CD 36","z":14,"c":[-73.9403733,40.6849751]},"41":{"l":"CD 41","z":14,"c":[-73.9171004,40.6658337]},"38":{"l":"CD 38","z":14,"c":[-74.0375863,40.6393224]},"47":{"l":"CD 47","z":13,"c":[-74.0292637,40.6296429]},"43":{"l":"CD 43","z":14,"c":[-73.9869737,40.6034567]},"2":{"l":"CD 2","z":14,"c":[-73.9671801,40.7183625]},"3":{"l":"CD 3","z":14,"c":[-73.9985532,40.7484328]},"25":{"l":"CD 25","z":14,"c":[-73.8898925,40.7535995]},"35":{"l":"CD 35","z":14,"c":[-73.96912,40.6881151]},"34":{"l":"CD 34","z":13,"c":[-73.9421703,40.7110616]},"9":{"l":"CD 9","z":14,"c":[-73.9436713,40.8120648]},"49":{"l":"CD 49","z":14,"c":[-74.1599583,40.6427518]},"26":{"l":"CD 26","z":13,"c":[-73.9173782,40.7386233]},"31":{"l":"CD 31","z":14,"c":[-73.8119918,40.6015812]},"27":{"l":"CD 27","z":12,"c":[-73.7613497,40.6974088]},"28":{"l":"CD 28","z":13,"c":[-73.79879,40.6812905]},"15":{"l":"CD 15","z":13,"c":[-73.8866009,40.8536468]},"1":{"l":"CD 1","z":14,"c":[-74.0113138,40.6844456]},"33":{"l":"CD 33","z":13,"c":[-73.949865,40.7266363]},"4":{"l":"CD 4","z":14,"c":[-73.975289,40.7537117]},"5":{"l":"CD 5","z":14,"c":[-73.9644178,40.7465894]},"14":{"l":"CD 14","z":14,"c":[-73.9056981,40.8613918]},"32":{"l":"CD 32","z":14,"c":[-73.82707,40.5903951]},"37":{"l":"CD 37","z":14,"c":[-73.8747661,40.684511]},"16":{"l":"CD 16","z":14,"c":[-73.9215187,40.8340759]},"44":{"l":"CD 44","z":14,"c":[-73.9706868,40.6185469]},"39":{"l":"CD 39","z":13,"c":[-73.9766191,40.6646709]},"40":{"l":"CD 40","z":14,"c":[-73.9538554,40.6556057]},"22":{"l":"CD 22","z":14,"c":[-73.8852688,40.7795939]},"21":{"l":"CD 21","z":13,"c":[-73.8560881,40.7485262]},"24":{"l":"CD 24","z":13,"c":[-73.8100429,40.7222964]},"19":{"l":"CD 19","z":14,"c":[-73.7447406,40.7788862]},"18":{"l":"CD 18","z":14,"c":[-73.8724169,40.8139209]},"20":{"l":"CD 20","z":13,"c":[-73.8209447,40.7539442]},"23":{"l":"CD 23","z":12,"c":[-73.7532774,40.7351973]},"8":{"l":"CD 8","z":14,"c":[-73.9346312,40.7985898]},"17":{"l":"CD 17","z":14,"c":[-73.8977614,40.7963382]},"10":{"l":"CD 10","z":14,"c":[-73.9379488,40.8465157]},"11":{"l":"CD 11","z":12,"c":[-73.8856565,40.8911885]},"12":{"l":"CD 12","z":13,"c":[-73.8350757,40.879534]},"13":{"l":"CD 13","z":14,"c":[-73.7890058,40.834979]},"50":{"l":"CD 50","z":14,"c":[-74.0500559,40.5659033]}};
+
+  var councilMarkers = [];
+
+  function updateCouncilLabels() {
+    var z = mapObj.getZoom();
+    councilMarkers.forEach(function(m) {
+      var tt = m.getTooltip();
+      if (!tt) return;
+      if (z >= m._councilMinZoom) {
+        if (!tt.isOpen()) m.openTooltip();
+      } else {
+        if (tt.isOpen()) m.closeTooltip();
+      }
+    });
+  }
+
+  document.getElementById('cityCouncilToggle').addEventListener('click', function() {
+    cityCouncilVisible = !cityCouncilVisible;
+    this.classList.toggle('active', cityCouncilVisible);
+    if (cityCouncilVisible) {
+      if (!cityCouncilLayer) {
+        cityCouncilLayer = L.geoJSON(CITY_COUNCIL_GEOJSON, {
+          smoothFactor: 0,
+          style: function() {
+            return {color:'#2a3d2c', fillColor:'transparent', fillOpacity:0, weight:1, opacity:0.7};
+          },
+          interactive: false,
+          onEachFeature: function(feature) {
+            var dist = String(feature.properties.CounDist);
+            var entry = COUNCIL_LABEL_LOOKUP[dist];
+            if (!entry) return;
+            var marker = L.marker([entry.c[1], entry.c[0]], {
+              icon: L.divIcon({className: '', iconSize: [0, 0]}),
+              interactive: false,
+              keyboard: false
+            });
+            marker._councilMinZoom = entry.z;
+            marker.bindTooltip(entry.l, {
+              permanent: true,
+              className: 'council-label',
+              direction: 'center',
+              offset: [0, 0]
+            });
+            councilMarkers.push(marker);
+          }
+        });
+        councilMarkers.forEach(function(m) { m.addTo(mapObj); });
+      }
+      cityCouncilLayer.addTo(mapObj);
+      enforceLayerOrder();
+      updateCouncilLabels();
+    } else {
+      if (cityCouncilLayer) mapObj.removeLayer(cityCouncilLayer);
+      councilMarkers.forEach(function(m) { mapObj.removeLayer(m); });
+    }
+  });
+
+  mapObj.on('zoomend', updateCouncilLabels);
 
   /* City labels — above shore, below district layers */
   var CITIES = [
@@ -1395,6 +1459,7 @@ function updateLayerPriority() {
 function enforceLayerOrder() {
   if (neighborhoodsLayer && mapObj.hasLayer(neighborhoodsLayer)) neighborhoodsLayer.bringToFront();
   if (countiesLayer && mapObj.hasLayer(countiesLayer)) countiesLayer.bringToFront();
+  if (cityCouncilLayer && mapObj.hasLayer(cityCouncilLayer)) cityCouncilLayer.bringToFront();
   if (geoLayer && mapObj.hasLayer(geoLayer)) geoLayer.bringToFront();
   if (senateLayer && mapObj.hasLayer(senateLayer)) senateLayer.bringToFront();
   if (assemblyLayer && mapObj.hasLayer(assemblyLayer)) assemblyLayer.bringToFront();
@@ -1733,6 +1798,8 @@ var neighborhoodsLayer = null;
 var neighborhoodsVisible = false;
 var countiesLayer = null;
 var countiesVisible = false;
+var cityCouncilLayer = null;
+var cityCouncilVisible = false;
 var congVisible = false;
 
 /* ── Map Search ── */
