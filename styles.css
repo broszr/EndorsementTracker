@@ -785,3 +785,58 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   pointer-events: none;
 }
 .council-label::before { display: none; }
+
+/* ── Win % Data View ── */
+#chart-view {
+  font-family: 'DM Mono', monospace;
+}
+.win-pct-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+}
+.win-pct-table thead th {
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  font-size: 0.6rem;
+  color: var(--muted);
+  border-bottom: 2px solid var(--border);
+  padding: 6px 10px;
+}
+.win-pct-table tbody tr {
+  border-bottom: 1px solid rgba(200,191,170,0.3);
+  transition: background .1s;
+}
+.win-pct-table tbody tr:hover { background: rgba(242,169,0,0.06); }
+.win-pct-table tbody td { padding: 7px 10px; vertical-align: middle; color: var(--ink); }
+.win-rank { color: var(--muted); font-size: 0.6rem; width: 30px; }
+.win-name { font-weight: 500; }
+.win-pct-cell { width: 160px; }
+.win-pct-bar-wrap {
+  position: relative;
+  height: 18px;
+  background: rgba(200,191,170,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.win-pct-bar-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: rgba(46,125,50,0.25);
+  border-radius: 2px;
+  transition: width .3s;
+}
+.win-pct-label {
+  position: relative;
+  z-index: 1;
+  padding-left: 6px;
+  font-size: 0.68rem;
+  color: #2e7d32;
+  font-weight: 500;
+}
+.win-won { text-align: center; color: #2e7d32; }
+.win-total { text-align: center; color: var(--muted); }
