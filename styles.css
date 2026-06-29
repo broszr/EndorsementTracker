@@ -840,3 +840,24 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
 }
 .win-won { text-align: center; color: #2e7d32; }
 .win-total { text-align: center; color: var(--muted); }
+
+/* ── Scatter plot ── */
+.scatter-tooltip {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  background: #0f0e0d;
+  color: #f5f0e8;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: .04em;
+  padding: 5px 9px;
+  border-radius: 2px;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 280px;
+}
+.win-row-highlight {
+  background: rgba(46,125,50,0.15) !important;
+  transition: background 0.1s;
+}
