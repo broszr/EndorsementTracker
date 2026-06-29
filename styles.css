@@ -144,6 +144,14 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   border-top:1px solid rgba(0,0,0,.1);
   padding-top:6px;
 }
+.bubble-win-rate {
+  font-size: 0.62rem;
+  color: #2e7d32;
+  letter-spacing: .04em;
+  line-height: 1.5;
+  margin-top: 5px;
+  font-style: italic;
+}
 .bubble-compare-btn {
   margin-top: 8px;
   width: 100%;
