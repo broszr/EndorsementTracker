@@ -1380,6 +1380,24 @@ function redrawEndorserOverlay(endorserName) {
   count.className = 'bubble-count';
   count.innerHTML = parts.join('<br>');
 
+  // Primary win rate
+  var allEndorsed = getAllCandidates().filter(function(c) {
+    return c.endorsements.some(function(e) { return e.name === endorserName; });
+  });
+  var totalEndorsed = allEndorsed.length;
+  var wonPrimary = allEndorsed.filter(function(c) {
+    return (c.campaignStatus || '').trim() === 'Won (Primary)';
+  }).length;
+
+  var winRateEl = document.createElement('div');
+  winRateEl.className = 'bubble-win-rate';
+  if (totalEndorsed > 0 && wonPrimary > 0) {
+    var pct = Math.round(wonPrimary / totalEndorsed * 100);
+    winRateEl.textContent = pct + '% of endorsed candidates won in the primary';
+  } else if (totalEndorsed > 0) {
+    winRateEl.textContent = '0% of endorsed candidates won in the primary';
+  }
+
   var bubbleCompareBtn = document.createElement('button');
   bubbleCompareBtn.className = 'compare-btn bubble-compare-btn';
   bubbleCompareBtn.textContent = 'Compare Endorsers';
@@ -1408,6 +1426,7 @@ function redrawEndorserOverlay(endorserName) {
   bubble.appendChild(label);
   bubble.appendChild(name);
   bubble.appendChild(count);
+  bubble.appendChild(winRateEl);
   bubble.appendChild(bubbleCompareBtn);
   wrap.appendChild(bubble);
   wrap.appendChild(closeBtn);
