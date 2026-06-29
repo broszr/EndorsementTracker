@@ -62,7 +62,8 @@
 </header>
 <div class="app-body">
 <div id="chart-view" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--cream);z-index:1000;overflow-y:auto;padding:24px 32px;padding-top:80px;box-sizing:border-box;">
-  <div style="max-width:800px;margin:0 auto;">
+  <div id="scatter-wrap" style="position:fixed;top:56px;right:24px;z-index:1001;background:var(--cream);border:1px solid var(--border);border-radius:3px;padding:10px;box-shadow:0 2px 12px rgba(0,0,0,0.12);"></div>
+  <div style="max-width:800px;margin:0 auto;padding-right:320px;">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;">
       <h2 id="chart-title" style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--ink);margin:0;">Endorser Win Rate — Primary Elections</h2>
       <button id="chartCloseBtn" style="background:none;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;cursor:pointer;">✕ Close</button>
@@ -2981,13 +2982,11 @@ function selectSearchEndorser(r) {
   var chartView   = document.getElementById('chart-view');
   var closeBtn    = document.getElementById('chartCloseBtn');
   var tableWrap   = document.getElementById('chart-table-wrap');
-  var appBody     = document.querySelector('.app-body');
   var chartOpen   = false;
+  var scatterRows = [];
 
-  function buildWinPctTable() {
+  function buildEndorserRows() {
     var allCands = getAllCandidates();
-
-    // Build endorser map: name -> {total, won}
     var endorserMap = {};
     allCands.forEach(function(c) {
       var wonPrimary = (c.campaignStatus || '').trim() === 'Won (Primary)';
@@ -2998,22 +2997,20 @@ function selectSearchEndorser(r) {
         if (wonPrimary) endorserMap[e.name].won++;
       });
     });
-
-    // Build rows
     var rows = Object.keys(endorserMap).map(function(name) {
       var d = endorserMap[name];
       var pct = d.total > 0 ? Math.round(d.won / d.total * 100) : 0;
       return {name: name, pct: pct, total: d.total, won: d.won};
     });
-
-    // Sort: pct desc, total desc, name asc
     rows.sort(function(a, b) {
       if (b.pct !== a.pct) return b.pct - a.pct;
       if (b.total !== a.total) return b.total - a.total;
       return a.name.localeCompare(b.name);
     });
+    return rows;
+  }
 
-    // Build table
+  function buildWinPctTable(rows) {
     var table = document.createElement('table');
     table.className = 'win-pct-table';
     table.innerHTML =
@@ -3024,10 +3021,10 @@ function selectSearchEndorser(r) {
         '<th>Won</th>' +
         '<th>Total Endorsed</th>' +
       '</tr></thead>';
-
     var tbody = document.createElement('tbody');
     rows.forEach(function(row, i) {
       var tr = document.createElement('tr');
+      tr.dataset.endorser = row.name;
       tr.innerHTML =
         '<td class="win-rank">' + (i + 1) + '</td>' +
         '<td class="win-name">' + row.name + '</td>' +
@@ -3046,10 +3043,136 @@ function selectSearchEndorser(r) {
     tableWrap.appendChild(table);
   }
 
+  function scrollToEndorser(name) {
+    var tr = tableWrap.querySelector('tr[data-endorser="' + name.replace(/"/g, '\\"') + '"]');
+    if (!tr) return;
+    tr.scrollIntoView({behavior: 'smooth', block: 'center'});
+    tr.classList.add('win-row-highlight');
+    setTimeout(function() { tr.classList.remove('win-row-highlight'); }, 1200);
+  }
+
+  function buildScatterPlot(rows) {
+    var W = 280, H = 220;
+    var PAD = {top: 18, right: 16, bottom: 36, left: 38};
+    var plotW = W - PAD.left - PAD.right;
+    var plotH = H - PAD.top - PAD.bottom;
+
+    var maxTotal = Math.max.apply(null, rows.map(function(r) { return r.total; }));
+    var xScale = function(v) { return PAD.left + (v / maxTotal) * plotW; };
+    var yScale = function(v) { return PAD.top + plotH - (v / 100) * plotH; };
+
+    // Tooltip div
+    var tooltip = document.getElementById('scatter-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.id = 'scatter-tooltip';
+      tooltip.className = 'scatter-tooltip';
+      document.body.appendChild(tooltip);
+    }
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.style.display = 'block';
+
+    // Background
+    var bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('x', PAD.left); bg.setAttribute('y', PAD.top);
+    bg.setAttribute('width', plotW); bg.setAttribute('height', plotH);
+    bg.setAttribute('fill', 'rgba(200,191,170,0.15)');
+    svg.appendChild(bg);
+
+    // Y gridlines + labels at 0, 25, 50, 75, 100
+    [0, 25, 50, 75, 100].forEach(function(v) {
+      var y = yScale(v);
+      var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', PAD.left); line.setAttribute('x2', PAD.left + plotW);
+      line.setAttribute('y1', y); line.setAttribute('y2', y);
+      line.setAttribute('stroke', 'rgba(180,160,130,0.4)'); line.setAttribute('stroke-width', '0.5');
+      svg.appendChild(line);
+      var lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      lbl.setAttribute('x', PAD.left - 4); lbl.setAttribute('y', y + 3.5);
+      lbl.setAttribute('text-anchor', 'end');
+      lbl.setAttribute('font-size', '7'); lbl.setAttribute('fill', '#999');
+      lbl.textContent = v + '%';
+      svg.appendChild(lbl);
+    });
+
+    // X axis label
+    var xLbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    xLbl.setAttribute('x', PAD.left + plotW / 2);
+    xLbl.setAttribute('y', H - 4);
+    xLbl.setAttribute('text-anchor', 'middle');
+    xLbl.setAttribute('font-size', '7.5'); xLbl.setAttribute('fill', '#999');
+    xLbl.setAttribute('letter-spacing', '0.05em');
+    xLbl.textContent = 'TOTAL ENDORSED';
+    svg.appendChild(xLbl);
+
+    // Y axis label
+    var yLbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    yLbl.setAttribute('transform', 'rotate(-90)');
+    yLbl.setAttribute('x', -(PAD.top + plotH / 2));
+    yLbl.setAttribute('y', 10);
+    yLbl.setAttribute('text-anchor', 'middle');
+    yLbl.setAttribute('font-size', '7.5'); yLbl.setAttribute('fill', '#999');
+    yLbl.setAttribute('letter-spacing', '0.05em');
+    yLbl.textContent = 'WIN %';
+    svg.appendChild(yLbl);
+
+    // Axes
+    var xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    xAxis.setAttribute('x1', PAD.left); xAxis.setAttribute('x2', PAD.left + plotW);
+    xAxis.setAttribute('y1', PAD.top + plotH); xAxis.setAttribute('y2', PAD.top + plotH);
+    xAxis.setAttribute('stroke', '#c8bfaa'); xAxis.setAttribute('stroke-width', '1');
+    svg.appendChild(xAxis);
+    var yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    yAxis.setAttribute('x1', PAD.left); yAxis.setAttribute('x2', PAD.left);
+    yAxis.setAttribute('y1', PAD.top); yAxis.setAttribute('y2', PAD.top + plotH);
+    yAxis.setAttribute('stroke', '#c8bfaa'); yAxis.setAttribute('stroke-width', '1');
+    svg.appendChild(yAxis);
+
+    // Points
+    rows.forEach(function(row) {
+      var cx = xScale(row.total);
+      var cy = yScale(row.pct);
+      var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', '4');
+      circle.setAttribute('fill', row.pct > 0 ? 'rgba(46,125,50,0.7)' : 'rgba(180,160,130,0.5)');
+      circle.setAttribute('stroke', row.pct > 0 ? '#2e7d32' : '#c8bfaa');
+      circle.setAttribute('stroke-width', '1');
+      circle.style.cursor = 'pointer';
+
+      circle.addEventListener('mousemove', function(e) {
+        tooltip.textContent = row.name + ' — ' + row.pct + '% (' + row.total + ' endorsed)';
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX + 12) + 'px';
+        tooltip.style.top  = (e.clientY - 28) + 'px';
+      });
+      circle.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+      });
+      circle.addEventListener('click', function() {
+        tooltip.style.display = 'none';
+        scrollToEndorser(row.name);
+      });
+      svg.appendChild(circle);
+    });
+
+    return svg;
+  }
+
   function openChartView() {
     chartOpen = true;
     winPctBtn.classList.add('active');
-    buildWinPctTable();
+    scatterRows = buildEndorserRows();
+    buildWinPctTable(scatterRows);
+
+    // Insert scatter plot into fixed container
+    var scatterWrap = document.getElementById('scatter-wrap');
+    scatterWrap.innerHTML = '';
+    scatterWrap.appendChild(buildScatterPlot(scatterRows));
+
     chartView.style.display = 'block';
   }
 
@@ -3057,6 +3180,8 @@ function selectSearchEndorser(r) {
     chartOpen = false;
     winPctBtn.classList.remove('active');
     chartView.style.display = 'none';
+    var tt = document.getElementById('scatter-tooltip');
+    if (tt) tt.style.display = 'none';
   }
 
   winPctBtn.addEventListener('click', function() {
