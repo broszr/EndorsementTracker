@@ -871,6 +871,12 @@ function makeCandCol(c, showDistrictBadge) {
     wonLabel.textContent = 'Won';
     hdrTop.appendChild(wonLabel);
   }
+  if ((c.campaignStatus || '').trim() === 'Won (Primary)') {
+    var wonPrimaryLabel = document.createElement('span');
+    wonPrimaryLabel.className = 'badge-won';
+    wonPrimaryLabel.textContent = 'Won Primary';
+    hdrTop.appendChild(wonPrimaryLabel);
+  }
 
   var toggle = document.createElement('span');
   toggle.className = 'cand-toggle';
