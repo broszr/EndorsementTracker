@@ -1010,28 +1010,6 @@ function makeCandCol(c, showDistrictBadge) {
         }
         endorserList.appendChild(item);
       });
-        item.className = 'endorser-item';
-        var chip = document.createElement('span');
-        chip.className = 'chip' + (currentEndorser === name ? ' active' : '');
-        chip.dataset.endorser = name;
-        chip.textContent = name;
-        chip.addEventListener('click', function(ev) {
-          ev.stopPropagation();
-          if (currentEndorser === name) {
-            currentEndorser = null;
-            endorserBubblePos = null;
-            document.getElementById('endorser-banner').classList.remove('visible');
-          } else {
-            currentEndorser = name;
-            activateEndorserLayers(name);
-            document.getElementById('banner-text').textContent = 'Filtering by: ' + name;
-            document.getElementById('endorser-banner').classList.add('visible');
-          }
-          renderPanel();
-        });
-        item.appendChild(chip);
-        endorserList.appendChild(item);
-      });
     });
     col.appendChild(endorserList);
   }
