@@ -232,12 +232,12 @@ function parseSheetCSV(text) {
 
     if (!position || !candidate) continue;
 
-    // Check each endorser column — any non-empty, non-zero cell = endorsed
+    // Check each endorser column — P = primary, G = general
     var endorsements = [];
     for (var e = 0; e < endorsers.length; e++) {
-      var cell = (fields[endorsers[e].col] || '').trim();
-      if (cell.toUpperCase() === 'X') {
-        endorsements.push([endorsers[e].category, endorsers[e].name]);
+      var cell = (fields[endorsers[e].col] || '').trim().toUpperCase();
+      if (cell === 'P' || cell === 'G') {
+        endorsements.push([endorsers[e].category, endorsers[e].name, cell]);
       }
     }
 
@@ -325,7 +325,7 @@ function fetchSheetData(cb) {
         var pos = (r[0] || '').trim().toUpperCase();
         var obj = {position:pos, positionStatus:r[1], candidate:r[2],
           campaignStatus:r[3], party:r[4],
-          endorsements:r[5].map(function(e){return {category:e[0], name:e[1]};})};
+          endorsements:r[5].map(function(e){return {category:e[0], name:e[1], stage:e[2]};})};
         if (pos === 'NY GOV')            GOV_CANDIDATES.push(obj);
         else if (pos === 'NY COMP')      COMP_CANDIDATES.push(obj);
         else if (pos === 'NY AG')        AG_CANDIDATES.push(obj);
@@ -971,7 +971,7 @@ function makeCandCol(c, showDistrictBadge) {
       if (!e.name) return;
       var cat = e.category || 'Other';
       if (!catMap[cat]) catMap[cat] = [];
-      catMap[cat].push(e.name);
+      catMap[cat].push({name: e.name, stage: e.stage || ''});
     });
     var sortedCats = Object.keys(catMap).sort(function(a,b){return a.localeCompare(b);});
     sortedCats.forEach(function(cat) {
@@ -979,8 +979,37 @@ function makeCandCol(c, showDistrictBadge) {
       catHeader.className = 'endorser-cat-header';
       catHeader.textContent = cat;
       endorserList.appendChild(catHeader);
-      catMap[cat].sort(function(a,b){return a.localeCompare(b);}).forEach(function(name) {
+      catMap[cat].sort(function(a,b){return a.name.localeCompare(b.name);}).forEach(function(entry) {
+        var name = entry.name;
         var item = document.createElement('div');
+        item.className = 'endorser-item';
+        var chip = document.createElement('span');
+        chip.className = 'chip' + (currentEndorser === name ? ' active' : '');
+        chip.dataset.endorser = name;
+        chip.textContent = name;
+        chip.addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          if (currentEndorser === name) {
+            currentEndorser = null;
+            endorserBubblePos = null;
+            document.getElementById('endorser-banner').classList.remove('visible');
+          } else {
+            currentEndorser = name;
+            activateEndorserLayers(name);
+            document.getElementById('banner-text').textContent = 'Filtering by: ' + name;
+            document.getElementById('endorser-banner').classList.add('visible');
+          }
+          renderPanel();
+        });
+        item.appendChild(chip);
+        if (entry.stage) {
+          var stageLabel = document.createElement('span');
+          stageLabel.className = 'endorser-stage-label' + (entry.stage === 'P' ? ' stage-primary' : ' stage-general');
+          stageLabel.textContent = entry.stage === 'P' ? 'Primary' : 'General';
+          item.appendChild(stageLabel);
+        }
+        endorserList.appendChild(item);
+      });
         item.className = 'endorser-item';
         var chip = document.createElement('span');
         chip.className = 'chip' + (currentEndorser === name ? ' active' : '');
@@ -3052,7 +3081,7 @@ function selectSearchEndorser(r) {
   }
 
   function buildScatterPlot(rows) {
-    var W = 500, H = 400;
+    var W = 280, H = 220;
     var PAD = {top: 18, right: 16, bottom: 36, left: 38};
     var plotW = W - PAD.left - PAD.right;
     var plotH = H - PAD.top - PAD.bottom;
