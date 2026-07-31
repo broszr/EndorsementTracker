@@ -861,3 +861,27 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   background: rgba(46,125,50,0.15) !important;
   transition: background 0.1s;
 }
+
+/* ── Endorsement stage labels ── */
+.endorser-stage-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: 5px;
+  align-self: center;
+}
+.stage-primary {
+  background: rgba(0,174,243,0.12);
+  color: #007aad;
+  border: 1px solid rgba(0,174,243,0.35);
+}
+.stage-general {
+  background: rgba(226,102,26,0.12);
+  color: #b85000;
+  border: 1px solid rgba(226,102,26,0.35);
+}
