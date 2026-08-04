@@ -747,3 +747,22 @@ header{background:#002d72;color:var(--paper);padding:10px 24px;display:flex;alig
   color: #b85000;
   border: 1px solid rgba(226,102,26,0.35);
 }
+
+/* ── Former Candidates divider ── */
+.former-candidates-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 8px 0;
+  color: #0f0e0d;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.former-candidates-divider::before,
+.former-candidates-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px dashed #0f0e0d;
+}
