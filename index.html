@@ -844,7 +844,7 @@ function onDistrictClick(num, pos, latlng, skipAssemblyClear) {
     openBadge.textContent = 'Open Seat';
     subtitleEl.appendChild(openBadge);
   } else {
-    subtitleEl.textContent = incumbent ? incumbent.candidate : '';
+    subtitleEl.textContent = '';
   }
   var hasOther = cands.some(function(c) { return c.party !== 'Democratic Party' && c.party !== 'Republican Party'; });
   document.querySelector('.filter-chip[data-party="other"]').style.display = hasOther ? '' : 'none';
@@ -1202,7 +1202,7 @@ function renderPanel() {
     ob.textContent = 'Open Seat';
     subtitleEl.appendChild(ob);
   } else {
-    subtitleEl.textContent = incumbentD ? incumbentD.candidate : '';
+    subtitleEl.textContent = '';
   }
 
   if (currentParty !== 'ALL') {
@@ -1678,7 +1678,7 @@ function renderAssemblyPanel() {
     var ob = document.createElement('span');
     ob.className = 'badge badge-open'; ob.textContent = 'Open Seat'; subtitleEl.appendChild(ob);
   } else {
-    subtitleEl.textContent = asmIncumbent ? asmIncumbent.candidate : '';
+    subtitleEl.textContent = '';
   }
 
   var filtered = cands.filter(function(c){
@@ -1821,7 +1821,7 @@ function renderSenatePanel() {
     var ob = document.createElement('span');
     ob.className = 'badge badge-open'; ob.textContent = 'Open Seat'; subtitleEl.appendChild(ob);
   } else {
-    subtitleEl.textContent = senIncumbent ? senIncumbent.candidate : '';
+    subtitleEl.textContent = '';
   }
 
   var filtered = cands.filter(function(c){
