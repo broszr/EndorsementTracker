@@ -1037,16 +1037,16 @@ function sortCandidates(arr) {
   return arr.slice().sort(function(a, b) {
     function rank(c) {
       var cs = (c.campaignStatus || '').trim();
-      if (cs === 'Won') return 0;
-      if (cs === 'Won (Primary)') return 1;
-      return 2;
+      var ps = (c.positionStatus || '').trim();
+      if (ps === 'Incumbent') return 0;
+      if (cs === 'Won') return 1;
+      if (cs === 'Won (Primary)') return 2;
+      return 3;
     }
     var ra = rank(a), rb = rank(b);
     if (ra !== rb) return ra - rb;
-    // Alphabetical by candidate name
     var nameComp = a.candidate.localeCompare(b.candidate);
     if (nameComp !== 0) return nameComp;
-    // Party: Democratic first, Republican second, other last
     function partyRank(c) {
       if (c.party === 'Democratic Party') return 0;
       if (c.party === 'Republican Party') return 1;
