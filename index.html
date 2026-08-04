@@ -1193,7 +1193,7 @@ function renderPanel() {
 
   var wrapper2 = document.createElement('div');
   wrapper2.className = 'cand-columns';
-  cands.forEach(function(c) { wrapper2.appendChild(makeCandCol(c, false)); });
+  sortCandidates(cands).forEach(function(c) { wrapper2.appendChild(makeCandCol(c, false)); });
   list.appendChild(wrapper2);
 
   /* sync overlay */
