@@ -1036,13 +1036,14 @@ function updateFilterCount(cands) {
 function sortCandidates(arr) {
   return arr.slice().sort(function(a, b) {
     function rank(c) {
-      var cs = (c.campaignStatus || '').trim();
-      var ps = (c.positionStatus || '').trim();
-      if (ps === 'Incumbent') return 0;
-      if (cs === 'Won') return 1;
-      if (cs === 'Won (Primary)') return 2;
-      return 3;
-    }
+  var cs = (c.campaignStatus || '').trim();
+  var ps = (c.positionStatus || '').trim();
+  if (ps === 'Incumbent') return 0;
+  if (cs === 'Won') return 1;
+  if (cs === 'Won (Primary)') return 2;
+  if (cs === 'Filed') return 3;
+  return 4;
+}
     var ra = rank(a), rb = rank(b);
     if (ra !== rb) return ra - rb;
     var nameComp = a.candidate.localeCompare(b.candidate);
