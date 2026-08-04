@@ -893,6 +893,12 @@ function makeCandCol(c, showDistrictBadge) {
     wonPrimaryLabel.textContent = 'Won Primary';
     hdrTop.appendChild(wonPrimaryLabel);
   }
+  if ((c.campaignStatus || '').trim() === 'Lost (Primary)') {
+    var lostPrimaryLabel = document.createElement('span');
+    lostPrimaryLabel.className = 'badge-lost-primary';
+    lostPrimaryLabel.textContent = 'Lost Primary';
+    hdrTop.appendChild(lostPrimaryLabel);
+  }
 
   var toggle = document.createElement('span');
   toggle.className = 'cand-toggle';
@@ -1025,6 +1031,29 @@ function updateFilterCount(cands) {
     return cs.indexOf('dropped') === -1 && cs.indexOf('failed to make ballot') === -1;
   });
   el.textContent = active.length + ' candidate' + (active.length !== 1 ? 's' : '');
+}
+
+function sortCandidates(arr) {
+  return arr.slice().sort(function(a, b) {
+    function rank(c) {
+      var cs = (c.campaignStatus || '').trim();
+      if (cs === 'Won') return 0;
+      if (cs === 'Won (Primary)') return 1;
+      return 2;
+    }
+    var ra = rank(a), rb = rank(b);
+    if (ra !== rb) return ra - rb;
+    // Alphabetical by candidate name
+    var nameComp = a.candidate.localeCompare(b.candidate);
+    if (nameComp !== 0) return nameComp;
+    // Party: Democratic first, Republican second, other last
+    function partyRank(c) {
+      if (c.party === 'Democratic Party') return 0;
+      if (c.party === 'Republican Party') return 1;
+      return 2;
+    }
+    return partyRank(a) - partyRank(b);
+  });
 }
 
 function renderPanel() {
@@ -1636,7 +1665,7 @@ function renderAssemblyPanel() {
     nd.textContent='No candidates match current filters.';list.appendChild(nd);return;
   }
   var wrapper=document.createElement('div');wrapper.className='cand-columns';
-  filtered.forEach(function(c){wrapper.appendChild(makeCandCol(c,false));});
+  sortCandidates(filtered).forEach(function(c){wrapper.appendChild(makeCandCol(c,false));});
   list.appendChild(wrapper);
 }
 
@@ -1779,7 +1808,7 @@ function renderSenatePanel() {
     nd.textContent='No candidates match current filters.';list.appendChild(nd);return;
   }
   var wrapper=document.createElement('div');wrapper.className='cand-columns';
-  filtered.forEach(function(c){wrapper.appendChild(makeCandCol(c,false));});
+  sortCandidates(filtered).forEach(function(c){wrapper.appendChild(makeCandCol(c,false));});
   list.appendChild(wrapper);
 }
 
@@ -2071,7 +2100,7 @@ function renderStatewidePanel(pos, title, cands) {
     list.innerHTML = '<div class="no-results">No candidates match the current filter.</div>';
     return;
   }
-  filtered.forEach(function(c) { list.appendChild(makeCandCol(c)); });
+  sortCandidates(filtered).forEach(function(c) { list.appendChild(makeCandCol(c)); });
 }
 
 function renderCD03Panel() {
@@ -2094,7 +2123,7 @@ function renderCD03Panel() {
     list.innerHTML = '<div class="no-results">No candidates match the current filter.</div>';
     return;
   }
-  filtered.forEach(function(c) { list.appendChild(makeCandCol(c)); });
+  sortCandidates(filtered).forEach(function(c) { list.appendChild(makeCandCol(c)); });
 }
 
 function flyToDistrict(bounds) {
